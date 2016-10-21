@@ -1,1 +1,0 @@
-C:\Git\WpfDirect2d\WpfDirect2d\bin\Debug\WpfDirect2d.exe.config
