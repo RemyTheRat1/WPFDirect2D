@@ -19,8 +19,8 @@ namespace WpfDirect2d
         private bool _renderRequiresInit;
         private Factory _d2dFactory;
         private RenderTarget _renderTarget;
-        List<RenderedGeometryPath> _createdGeometries;
-        Dictionary<Color, SolidColorBrush> _brushResources;
+        private readonly List<RenderedGeometryPath> _createdGeometries;
+        private readonly Dictionary<Color, SolidColorBrush> _brushResources;
 
         #region Dependency Properties
 
@@ -43,6 +43,14 @@ namespace WpfDirect2d
 
             Loaded += OnLoaded;
             SizeChanged += OnSizeChanged;
+        }
+
+        /// <summary>
+        /// Request a render of the geometries defined in the Shapes DP
+        /// </summary>
+        public void RequestRender()
+        {
+            InteropImage.RequestRender();
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
