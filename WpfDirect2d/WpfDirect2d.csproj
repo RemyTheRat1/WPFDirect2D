@@ -90,6 +90,9 @@
       <DependentUpon>Direct2dSurface.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Shapes\RenderedGeometryPath.cs" />
+    <Compile Include="Shapes\VectorShape.cs" />
+    <Compile Include="Shapes\VectorShapeInstance.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="Direct2dSurface.xaml">
@@ -99,6 +102,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VectorGraphicsHelper\VectorGraphicsHelper.csproj">
+      <Project>{25b25f53-7409-40df-89ba-ec33d7b00de0}</Project>
+      <Name>VectorGraphicsHelper</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
