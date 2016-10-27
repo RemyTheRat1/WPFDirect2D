@@ -8,6 +8,7 @@ using SharpDX;
 using SharpDX.Direct2D1;
 using VectorGraphicsHelper;
 using WpfDirect2d.Shapes;
+using Wpf = System.Windows.Media;
 
 namespace WpfDirect2d
 {
@@ -20,7 +21,7 @@ namespace WpfDirect2d
         private Factory _d2dFactory;
         private RenderTarget _renderTarget;
         private readonly List<RenderedGeometryPath> _createdGeometries;
-        private readonly Dictionary<Color, SolidColorBrush> _brushResources;
+        private readonly Dictionary<Wpf.Color, SolidColorBrush> _brushResources;
 
         #region Dependency Properties
 
@@ -39,7 +40,7 @@ namespace WpfDirect2d
         {
             InitializeComponent();
             _createdGeometries = new List<RenderedGeometryPath>();
-            _brushResources = new Dictionary<Color, SolidColorBrush>();
+            _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
 
             Loaded += OnLoaded;
             SizeChanged += OnSizeChanged;
@@ -62,6 +63,9 @@ namespace WpfDirect2d
                 InteropImage.WindowOwner = new WindowInteropHelper(parentWindow).Handle;
                 //callback for when a render is requested
                 InteropImage.OnRender = Render;
+
+                //request one frame to be rendered            
+                InteropImage.RequestRender();
             }
         }
 
@@ -73,7 +77,11 @@ namespace WpfDirect2d
             //create the direct3d 11 device and query interface for DXGI
             var comObject = new ComObject(handle);
             var resource = comObject.QueryInterface<SharpDX.DXGI.Resource>();
-            _d2dFactory = new Factory();
+
+            if (_d2dFactory == null)
+            {
+                _d2dFactory = new Factory();
+            }
 
             //get a Texture2D resource from Direct3D11 to render to (back buffer)
             var texture = resource.QueryInterface<SharpDX.Direct3D11.Texture2D>();
@@ -113,8 +121,8 @@ namespace WpfDirect2d
                 dpiScale = hwndTarget.TransformToDevice.M11;
             }
 
-            int surfWidth = (int)(ImageHost.ActualWidth < 0 ? 0 : Math.Ceiling(ImageHost.ActualWidth * dpiScale));
-            int surfHeight = (int)(ImageHost.ActualHeight < 0 ? 0 : Math.Ceiling(ImageHost.ActualHeight * dpiScale));
+            int surfWidth = (int)(ImageContainer.ActualWidth < 0 ? 0 : Math.Ceiling(ImageContainer.ActualWidth * dpiScale));
+            int surfHeight = (int)(ImageContainer.ActualHeight < 0 ? 0 : Math.Ceiling(ImageContainer.ActualHeight * dpiScale));
 
             // notify the D3D11Image and the DxRendering component of the pixel size desired for the DirectX rendering.
             InteropImage.SetPixelSize(surfWidth, surfHeight);
@@ -123,9 +131,9 @@ namespace WpfDirect2d
             InteropImage.RequestRender();
         }
 
-        private void Render(IntPtr resourcePointer, bool b)
+        private void Render(IntPtr resourcePointer, bool isNewSurface)
         {
-            if (_renderTarget == null || _renderRequiresInit)
+            if (_renderTarget == null || _renderRequiresInit || isNewSurface)
             {
                 InitializeRenderer(resourcePointer);
             }
@@ -135,8 +143,6 @@ namespace WpfDirect2d
                 return;
             }
 
-            _renderTarget.Clear(Color.Transparent);
-
             //check if any new shapes need to be created / disposed
             SyncGeometriesWithShapes();
 
@@ -145,11 +151,13 @@ namespace WpfDirect2d
 
             _renderTarget.BeginDraw();
 
+            _renderTarget.Clear(Color.Transparent);
+
             //render the geometries
             foreach (var shape in Shapes)
             {
                 //get the path geometry for the shape
-                var pathGeometry = _createdGeometries.FirstOrDefault(g => g.GeometryPath == shape.GeometryPath);                
+                var pathGeometry = _createdGeometries.FirstOrDefault(g => g.GeometryPath == shape.GeometryPath);
                 if (pathGeometry != null)
                 {
                     foreach (var shapeInstance in shape.ShapeInstances)
@@ -158,13 +166,13 @@ namespace WpfDirect2d
                         var fillBrush = _brushResources[shapeInstance.FillColor];
                         var strokeBrush = _brushResources[shapeInstance.StrokeColor];
 
-                        _renderTarget.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation);
+                        _renderTarget.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation) * Matrix3x2.Scaling(shapeInstance.Scaling);
                         //render the fill color
                         _renderTarget.FillGeometry(pathGeometry.Geometry, fillBrush);
                         //render the geometry
                         _renderTarget.DrawGeometry(pathGeometry.Geometry, strokeBrush, shapeInstance.StrokeWidth);
-                    }                    
-                }                
+                    }
+                }
             }
 
             _renderTarget.EndDraw();
@@ -209,19 +217,19 @@ namespace WpfDirect2d
                 if (_brushResources.All(b => b.Key != instance.FillColor))
                 {
                     //color missing, add it
-                    var solidBrush = new SolidColorBrush(_renderTarget, instance.FillColor);
+                    var solidBrush = new SolidColorBrush(_renderTarget, instance.FillColor.ToDirect2dColor());
                     _brushResources.Add(instance.FillColor, solidBrush);
                 }
 
                 if (_brushResources.All(b => b.Key != instance.StrokeColor))
                 {
                     //color missing, add it
-                    var solidBrush = new SolidColorBrush(_renderTarget, instance.FillColor);
+                    var solidBrush = new SolidColorBrush(_renderTarget, instance.StrokeColor.ToDirect2dColor());
                     _brushResources.Add(instance.StrokeColor, solidBrush);
                 }
             }
 
-            var colorsToDelete = new List<Color>();
+            var colorsToDelete = new List<Wpf.Color>();
 
             //delete any brushes not in use anymore
             foreach (var color in _brushResources.Keys)
@@ -230,7 +238,7 @@ namespace WpfDirect2d
                                    from instance in shape.ShapeInstances.Where(instance => instance.FillColor == color || instance.StrokeColor == color)
                                    select shape).Any();
 
-                if (colorFound)
+                if (!colorFound)
                 {
                     colorsToDelete.Add(color);
                 }

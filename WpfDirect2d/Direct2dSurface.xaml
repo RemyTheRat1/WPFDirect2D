@@ -6,11 +6,12 @@
              xmlns:directX="clr-namespace:Microsoft.Wpf.Interop.DirectX;assembly=Microsoft.Wpf.Interop.DirectX"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
-    
-    <Image Name="ImageHost" Stretch="Fill">
-        <Image.Source>
-            <directX:D3D11Image x:Name="InteropImage" />
-        </Image.Source>
-    </Image>
-    
+
+    <Grid Name="ImageContainer" ClipToBounds="True">
+        <Image Name="InteropHost" Stretch="Fill">
+            <Image.Source>
+                <directX:D3D11Image x:Name="InteropImage" />
+            </Image.Source>
+        </Image>
+    </Grid>
 </UserControl>

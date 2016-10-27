@@ -1,4 +1,4 @@
-﻿using SharpDX;
+﻿using System.Windows.Media;
 
 namespace WpfDirect2d.Shapes
 {
@@ -8,9 +8,7 @@ namespace WpfDirect2d.Shapes
 
         public float PixelYLocation { get; set; }
 
-        public float Width { get; set; }
-
-        public float Height { get; set; }
+        public float Scaling { get; set; }
 
         public Color FillColor { get; set; }
 
