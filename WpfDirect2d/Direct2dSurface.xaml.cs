@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using SharpDX;
 using SharpDX.Direct2D1;
 using VectorGraphicsHelper;
 using WpfDirect2d.Shapes;
+using Point = System.Windows.Point;
 using Wpf = System.Windows.Media;
 
 namespace WpfDirect2d
@@ -21,6 +23,10 @@ namespace WpfDirect2d
 
         private float _scaleFactor;
         private Matrix3x2 _zoomScaleTransform;
+        private Point _mouseMoveStartPoint;
+        private Matrix3x2 _panTranslateMatrix;
+        private bool _isPanning;
+        private Vector _lastPanDragOffset;
 
         private bool _renderRequiresInit;
         private Factory _d2dFactory;
@@ -33,11 +39,14 @@ namespace WpfDirect2d
         public static readonly DependencyProperty ShapesProperty =
             DependencyProperty.Register("Shapes", typeof(IEnumerable<VectorShape>), typeof(Direct2dSurface));
 
-        public static readonly DependencyProperty MouseWheelZoomEnabledProperty =
-            DependencyProperty.Register("MouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
+        public static readonly DependencyProperty IsMouseWheelZoomEnabledProperty =
+            DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
 
         public static readonly DependencyProperty ZoomFactorProperty =
             DependencyProperty.Register("ZoomFactor", typeof(float), typeof(Direct2dSurface), new PropertyMetadata(DEFAULT_ZOOM_FACTOR));
+
+        public static readonly DependencyProperty IsPanningEnabledProperty =
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));
 
         public IEnumerable<VectorShape> Shapes
         {
@@ -45,16 +54,22 @@ namespace WpfDirect2d
             set { SetValue(ShapesProperty, value); }
         }
 
-        public bool MouseWheelZoomEnabled
+        public bool IsMouseWheelZoomEnabled
         {
-            get { return (bool)GetValue(MouseWheelZoomEnabledProperty); }
-            set { SetValue(MouseWheelZoomEnabledProperty, value); }
+            get { return (bool)GetValue(IsMouseWheelZoomEnabledProperty); }
+            set { SetValue(IsMouseWheelZoomEnabledProperty, value); }
         }
 
         public float ZoomFactor
         {
             get { return (float)GetValue(ZoomFactorProperty); }
             set { SetValue(ZoomFactorProperty, value); }
+        }
+
+        public bool IsPanningEnabled
+        {
+            get { return (bool)GetValue(IsPanningEnabledProperty); }
+            set { SetValue(IsPanningEnabledProperty, value); }
         }
 
         #endregion
@@ -66,6 +81,8 @@ namespace WpfDirect2d
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
             _zoomScaleTransform = Matrix3x2.Identity;
             _scaleFactor = 1;
+            _panTranslateMatrix = Matrix3x2.Identity;
+            _lastPanDragOffset = new Vector();
 
             Loaded += OnLoaded;
             SizeChanged += OnSizeChanged;
@@ -191,9 +208,16 @@ namespace WpfDirect2d
                         var fillBrush = _brushResources[shapeInstance.FillColor];
                         var strokeBrush = _brushResources[shapeInstance.StrokeColor];
 
-                        _renderTarget.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation) 
-                            * Matrix3x2.Scaling(shapeInstance.Scaling) 
-                            * _zoomScaleTransform;
+                        //translate the location by the pixel location of the geomoetry                        
+                        //then scale the geometry by its scaling factor
+                        //then scale the geometry by the zoom scale factor
+                        //then translate by the pan translation amount
+
+                        _renderTarget.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation)
+                            * Matrix3x2.Scaling(shapeInstance.Scaling)
+                            * _zoomScaleTransform
+                            * _panTranslateMatrix;
+
                         //render the fill color
                         _renderTarget.FillGeometry(pathGeometry.Geometry, fillBrush);
                         //render the geometry
@@ -280,6 +304,11 @@ namespace WpfDirect2d
 
         private void ImageContainer_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
+            if (!IsMouseWheelZoomEnabled)
+            {
+                return;
+            }
+
             var screenPosition = e.GetPosition(InteropHost);
             Vector2 scalePoint = new Vector2((float)screenPosition.X, (float)screenPosition.Y);
 
@@ -298,6 +327,49 @@ namespace WpfDirect2d
             _scaleFactor += zoomFactor;
             _zoomScaleTransform = Matrix3x2.Scaling(_scaleFactor, _scaleFactor, zoomPoint);
             InteropImage.RequestRender();
+        }
+
+        private void ImageContainer_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (!IsPanningEnabled)
+            {
+                return;
+            }
+
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                _isPanning = true;
+
+                Point currentMousePoint = e.GetPosition(InteropHost);
+                Vector dragOffset =  currentMousePoint - _mouseMoveStartPoint;
+                dragOffset = _lastPanDragOffset + dragOffset;
+                _panTranslateMatrix = Matrix3x2.Translation((float)dragOffset.X, (float)dragOffset.Y);
+
+                InteropImage.RequestRender();
+            }
+        }
+
+        private void ImageContainer_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (IsPanningEnabled)
+            {
+                _mouseMoveStartPoint = e.GetPosition(InteropHost);
+            }            
+        }
+
+        private void ImageContainer_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!IsPanningEnabled)
+            {
+                return;
+            }
+
+            if (_isPanning)
+            {
+                _lastPanDragOffset = new Vector(_panTranslateMatrix.TranslationVector.X, _panTranslateMatrix.TranslationVector.Y);
+            }
+
+            _isPanning = false;
         }
     }
 }

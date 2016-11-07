@@ -8,6 +8,6 @@
         Title="MainWindow" Height="720" Width="1024">
 
    
-        <wpfDirect2D:Direct2dSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" MouseWheelZoomEnabled="True" />
+        <wpfDirect2D:Direct2dSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" IsMouseWheelZoomEnabled="True" IsPanningEnabled="True" />
 
 </Window>

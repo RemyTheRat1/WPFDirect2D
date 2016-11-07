@@ -7,7 +7,11 @@
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
 
-    <Grid Name="ImageContainer" ClipToBounds="True" MouseWheel="ImageContainer_MouseWheel">
+    <Grid Name="ImageContainer" ClipToBounds="True" 
+          MouseWheel="ImageContainer_MouseWheel" 
+          MouseLeftButtonDown="ImageContainer_MouseLeftButtonDown" 
+          MouseLeftButtonUp="ImageContainer_MouseLeftButtonUp" 
+          MouseMove="ImageContainer_MouseMove">
         <Image Name="InteropHost" Stretch="Fill">
             <Image.Source>
                 <directX:D3D11Image x:Name="InteropImage" />
