@@ -21,6 +21,8 @@ namespace WpfDirect2d
     {
         private const float DEFAULT_ZOOM_FACTOR = 0.08f;
 
+        private bool _isInitialized;
+
         private float _scaleFactor;
         private Matrix3x2 _zoomScaleTransform;
         private Point _mouseMoveStartPoint;
@@ -79,12 +81,11 @@ namespace WpfDirect2d
             InitializeComponent();
             _createdGeometries = new List<RenderedGeometryPath>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
-            _zoomScaleTransform = Matrix3x2.Identity;
-            _scaleFactor = 1;
-            _panTranslateMatrix = Matrix3x2.Identity;
-            _lastPanDragOffset = new Vector();
+            ResetPanTranslation();
+            ResetZoomScale();
 
             Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
             SizeChanged += OnSizeChanged;
         }
 
@@ -98,6 +99,11 @@ namespace WpfDirect2d
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            if (_isInitialized)
+            {
+                return;
+            }
+
             var parentWindow = Window.GetWindow(this);
             if (parentWindow != null)
             {
@@ -106,9 +112,32 @@ namespace WpfDirect2d
                 //callback for when a render is requested
                 InteropImage.OnRender = Render;
 
+                _isInitialized = true;
+
                 //request one frame to be rendered            
                 InteropImage.RequestRender();
             }
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            _renderTarget.Dispose();
+            foreach (var geometry in _createdGeometries)
+            {
+                geometry.Dispose();
+            }
+            foreach (var brush in _brushResources)
+            {
+                brush.Value.Dispose();
+            }
+
+            _createdGeometries.Clear();
+            _brushResources.Clear();
+
+            ResetZoomScale();
+            ResetPanTranslation();
+
+            _isInitialized = false;
         }
 
         private void InitializeRenderer(IntPtr handle)
@@ -309,6 +338,7 @@ namespace WpfDirect2d
                 return;
             }
 
+            //get the point the mouse is at to zoom about
             var screenPosition = e.GetPosition(InteropHost);
             Vector2 scalePoint = new Vector2((float)screenPosition.X, (float)screenPosition.Y);
 
@@ -340,8 +370,10 @@ namespace WpfDirect2d
             {
                 _isPanning = true;
 
+                //get the current offset from the inital mouse left down point and the current move position
                 Point currentMousePoint = e.GetPosition(InteropHost);
                 Vector dragOffset =  currentMousePoint - _mouseMoveStartPoint;
+                //add to this offset the last saved drag offset, so the rendering does not start from the inital point again
                 dragOffset = _lastPanDragOffset + dragOffset;
                 _panTranslateMatrix = Matrix3x2.Translation((float)dragOffset.X, (float)dragOffset.Y);
 
@@ -366,10 +398,23 @@ namespace WpfDirect2d
 
             if (_isPanning)
             {
+                //save the last translation values for future panning operations
                 _lastPanDragOffset = new Vector(_panTranslateMatrix.TranslationVector.X, _panTranslateMatrix.TranslationVector.Y);
             }
 
             _isPanning = false;
+        }
+
+        private void ResetZoomScale()
+        {
+            _zoomScaleTransform = Matrix3x2.Identity;
+            _scaleFactor = 1;
+        }
+
+        private void ResetPanTranslation()
+        {
+            _panTranslateMatrix = Matrix3x2.Identity;
+            _lastPanDragOffset = new Vector();
         }
     }
 }
