@@ -7,6 +7,7 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="720" Width="1024">
 
-    <wpfDirect2D:Direct2dSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" />
+   
+        <wpfDirect2D:Direct2dSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" MouseWheelZoomEnabled="True" />
 
 </Window>

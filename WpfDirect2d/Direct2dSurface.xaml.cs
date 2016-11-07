@@ -17,6 +17,11 @@ namespace WpfDirect2d
     /// </summary>
     public partial class Direct2dSurface : UserControl
     {
+        private const float DEFAULT_ZOOM_FACTOR = 0.08f;
+
+        private float _scaleFactor;
+        private Matrix3x2 _zoomScaleTransform;
+
         private bool _renderRequiresInit;
         private Factory _d2dFactory;
         private RenderTarget _renderTarget;
@@ -28,10 +33,28 @@ namespace WpfDirect2d
         public static readonly DependencyProperty ShapesProperty =
             DependencyProperty.Register("Shapes", typeof(IEnumerable<VectorShape>), typeof(Direct2dSurface));
 
+        public static readonly DependencyProperty MouseWheelZoomEnabledProperty =
+            DependencyProperty.Register("MouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
+
+        public static readonly DependencyProperty ZoomFactorProperty =
+            DependencyProperty.Register("ZoomFactor", typeof(float), typeof(Direct2dSurface), new PropertyMetadata(DEFAULT_ZOOM_FACTOR));
+
         public IEnumerable<VectorShape> Shapes
         {
             get { return (IEnumerable<VectorShape>)GetValue(ShapesProperty); }
             set { SetValue(ShapesProperty, value); }
+        }
+
+        public bool MouseWheelZoomEnabled
+        {
+            get { return (bool)GetValue(MouseWheelZoomEnabledProperty); }
+            set { SetValue(MouseWheelZoomEnabledProperty, value); }
+        }
+
+        public float ZoomFactor
+        {
+            get { return (float)GetValue(ZoomFactorProperty); }
+            set { SetValue(ZoomFactorProperty, value); }
         }
 
         #endregion
@@ -41,6 +64,8 @@ namespace WpfDirect2d
             InitializeComponent();
             _createdGeometries = new List<RenderedGeometryPath>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
+            _zoomScaleTransform = Matrix3x2.Identity;
+            _scaleFactor = 1;
 
             Loaded += OnLoaded;
             SizeChanged += OnSizeChanged;
@@ -166,7 +191,9 @@ namespace WpfDirect2d
                         var fillBrush = _brushResources[shapeInstance.FillColor];
                         var strokeBrush = _brushResources[shapeInstance.StrokeColor];
 
-                        _renderTarget.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation) * Matrix3x2.Scaling(shapeInstance.Scaling);
+                        _renderTarget.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation) 
+                            * Matrix3x2.Scaling(shapeInstance.Scaling) 
+                            * _zoomScaleTransform;
                         //render the fill color
                         _renderTarget.FillGeometry(pathGeometry.Geometry, fillBrush);
                         //render the geometry
@@ -249,6 +276,28 @@ namespace WpfDirect2d
             {
                 _brushResources.Remove(color);
             }
+        }
+
+        private void ImageContainer_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            var screenPosition = e.GetPosition(InteropHost);
+            Vector2 scalePoint = new Vector2((float)screenPosition.X, (float)screenPosition.Y);
+
+            if (e.Delta < 0)
+            {
+                Zoom(-ZoomFactor, scalePoint);
+            }
+            else
+            {
+                Zoom(ZoomFactor, scalePoint);
+            }
+        }
+
+        private void Zoom(float zoomFactor, Vector2 zoomPoint)
+        {
+            _scaleFactor += zoomFactor;
+            _zoomScaleTransform = Matrix3x2.Scaling(_scaleFactor, _scaleFactor, zoomPoint);
+            InteropImage.RequestRender();
         }
     }
 }
