@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using SharpDX;
 using SharpDX.Direct2D1;
+using SharpDX.Mathematics.Interop;
 using VectorGraphicsHelper;
 using WpfDirect2d.Shapes;
 using Point = System.Windows.Point;
@@ -21,7 +22,7 @@ namespace WpfDirect2d
     {
         private const float DEFAULT_ZOOM_FACTOR = 0.08f;
 
-        private bool _isInitialized;
+        private bool _isRenderInitialized;
 
         private float _scaleFactor;
         private Matrix3x2 _zoomScaleTransform;
@@ -39,7 +40,18 @@ namespace WpfDirect2d
         #region Dependency Properties
 
         public static readonly DependencyProperty ShapesProperty =
-            DependencyProperty.Register("Shapes", typeof(IEnumerable<VectorShape>), typeof(Direct2dSurface));
+            DependencyProperty.Register("Shapes", typeof(IEnumerable<VectorShape>), typeof(Direct2dSurface), new PropertyMetadata(new PropertyChangedCallback(OnShapesChanged)));
+
+        private static void OnShapesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = d as Direct2dSurface;
+            if (control != null && control._isRenderInitialized)
+            {
+                control.SyncGeometriesWithShapes();
+                control.SyncBrushesWithShapes();
+            }
+            control?.RequestRender();
+        }
 
         public static readonly DependencyProperty IsMouseWheelZoomEnabledProperty =
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
@@ -99,7 +111,7 @@ namespace WpfDirect2d
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            if (_isInitialized)
+            if (_isRenderInitialized)
             {
                 return;
             }
@@ -112,10 +124,13 @@ namespace WpfDirect2d
                 //callback for when a render is requested
                 InteropImage.OnRender = Render;
 
-                _isInitialized = true;
+                _isRenderInitialized = true;                
 
                 //request one frame to be rendered            
                 InteropImage.RequestRender();
+
+                SyncGeometriesWithShapes();
+                SyncGeometriesWithShapes();
             }
         }
 
@@ -137,7 +152,7 @@ namespace WpfDirect2d
             ResetZoomScale();
             ResetPanTranslation();
 
-            _isInitialized = false;
+            _isRenderInitialized = false;
         }
 
         private void InitializeRenderer(IntPtr handle)
@@ -209,20 +224,14 @@ namespace WpfDirect2d
                 InitializeRenderer(resourcePointer);
             }
 
-            if (_renderTarget == null)
+            if (_renderTarget == null || Shapes == null)
             {
                 return;
             }
 
-            //check if any new shapes need to be created / disposed
-            SyncGeometriesWithShapes();
-
-            //check if any new brushes need to be created / disposed
-            SyncBrushesWithShapes();
-
             _renderTarget.BeginDraw();
 
-            _renderTarget.Clear(Color.Transparent);
+            //_renderTarget.Clear(Color.Transparent);
 
             //render the geometries
             foreach (var shape in Shapes)
@@ -237,7 +246,7 @@ namespace WpfDirect2d
                         var fillBrush = _brushResources[shapeInstance.FillColor];
                         var strokeBrush = _brushResources[shapeInstance.StrokeColor];
 
-                        //translate the location by the pixel location of the geomoetry                        
+                        //translate the location by the pixel location of the geometry                        
                         //then scale the geometry by its scaling factor
                         //then scale the geometry by the zoom scale factor
                         //then translate by the pan translation amount
@@ -250,16 +259,21 @@ namespace WpfDirect2d
                         //render the fill color
                         _renderTarget.FillGeometry(pathGeometry.Geometry, fillBrush);
                         //render the geometry
-                        _renderTarget.DrawGeometry(pathGeometry.Geometry, strokeBrush, shapeInstance.StrokeWidth);
+                        _renderTarget.DrawGeometry(pathGeometry.Geometry, strokeBrush, shapeInstance.StrokeWidth);                        
                     }
                 }
             }
-
+            
             _renderTarget.EndDraw();
         }
 
         private void SyncGeometriesWithShapes()
         {
+            if (_d2dFactory == null || Shapes == null)
+            {
+                return;
+            }
+
             var geometriesToAdd = new List<RenderedGeometryPath>();
 
             foreach (var shape in Shapes)
@@ -274,7 +288,7 @@ namespace WpfDirect2d
                     helper.Execute(commands);
                     sink.Close();
 
-                    geometriesToAdd.Add(new RenderedGeometryPath(shape.GeometryPath, geometry));
+                    geometriesToAdd.Add(new RenderedGeometryPath(shape.GeometryPath, geometry));                    
                 }
             }
 
@@ -291,6 +305,11 @@ namespace WpfDirect2d
 
         private void SyncBrushesWithShapes()
         {
+            if (_d2dFactory == null || Shapes == null)
+            {
+                return;
+            }
+
             //add any missing brushes
             foreach (var instance in Shapes.SelectMany(shape => shape.ShapeInstances))
             {
@@ -327,7 +346,9 @@ namespace WpfDirect2d
             //remove brushes to be deleted
             foreach (var color in colorsToDelete)
             {
+                var brush = _brushResources[color];
                 _brushResources.Remove(color);
+                brush.Dispose();
             }
         }
 
@@ -400,6 +421,24 @@ namespace WpfDirect2d
             {
                 //save the last translation values for future panning operations
                 _lastPanDragOffset = new Vector(_panTranslateMatrix.TranslationVector.X, _panTranslateMatrix.TranslationVector.Y);
+            }
+            else
+            {
+                var mousePosition = e.GetPosition(InteropHost);
+                var testPoint = new Vector2((float)mousePosition.X, (float)mousePosition.Y);
+
+                //do a hit test to see what shape is being clicked on
+                foreach (var shape in Shapes)
+                {
+                    var pathGeometry = _createdGeometries.FirstOrDefault(g => g.GeometryPath == shape.GeometryPath);
+                    foreach (var shapeInstance in shape.ShapeInstances)
+                    {
+                        if (!pathGeometry.Geometry.FillContainsPoint(testPoint))
+                        {
+                            break;
+                        }
+                    }                    
+                }
             }
 
             _isPanning = false;
