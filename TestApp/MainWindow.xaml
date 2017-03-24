@@ -7,7 +7,14 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="720" Width="1024">
 
-   
+    <DockPanel>
+        <StackPanel Orientation="Horizontal" DockPanel.Dock ="Top">
+            <TextBlock Text="Number of items to render: " />
+            <TextBox Text="{Binding NumberOfItemsToRender}" Margin="4,0,8,0" MinWidth="60" />
+            <Button MinWidth="80" Content="Apply" Command="{Binding ApplyNumberOfRenderItems}" />
+        </StackPanel>
+        
         <wpfDirect2D:Direct2dSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" IsMouseWheelZoomEnabled="True" IsPanningEnabled="True" />
+    </DockPanel>
 
 </Window>

@@ -23,7 +23,7 @@ namespace TestApp
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainViewModel(new Action(() => Direct2dSurface.RequestRender()));
+            DataContext = new MainViewModel();
         }
     }
 }
