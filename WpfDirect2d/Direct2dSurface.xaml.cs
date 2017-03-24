@@ -231,7 +231,7 @@ namespace WpfDirect2d
 
             _renderTarget.BeginDraw();
 
-            //_renderTarget.Clear(Color.Transparent);
+            _renderTarget.Clear(Color.Transparent);
 
             //render the geometries
             foreach (var shape in Shapes)
