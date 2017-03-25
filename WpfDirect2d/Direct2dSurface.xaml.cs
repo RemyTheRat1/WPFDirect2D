@@ -6,12 +6,11 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using SharpDX;
-using SharpDX.Direct2D1;
-using SharpDX.Mathematics.Interop;
 using VectorGraphicsHelper;
 using WpfDirect2d.Shapes;
 using Point = System.Windows.Point;
 using Wpf = System.Windows.Media;
+using SharpDX.Direct2D1;
 
 namespace WpfDirect2d
 {
@@ -24,6 +23,9 @@ namespace WpfDirect2d
 
         private bool _isRenderInitialized;
 
+        private DeviceContext _context;
+        private SharpDX.Direct3D11.Device _d3dDevice;                
+
         private float _scaleFactor;
         private Matrix3x2 _zoomScaleTransform;
         private Point _mouseMoveStartPoint;
@@ -31,9 +33,7 @@ namespace WpfDirect2d
         private bool _isPanning;
         private Vector _lastPanDragOffset;
 
-        private bool _renderRequiresInit;
-        private Factory _d2dFactory;
-        private RenderTarget _renderTarget;
+        private bool _renderRequiresInit;         
         private readonly List<RenderedGeometryPath> _createdGeometries;
         private readonly Dictionary<Wpf.Color, SolidColorBrush> _brushResources;
 
@@ -60,7 +60,7 @@ namespace WpfDirect2d
             DependencyProperty.Register("ZoomFactor", typeof(float), typeof(Direct2dSurface), new PropertyMetadata(DEFAULT_ZOOM_FACTOR));
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));        
 
         public IEnumerable<VectorShape> Shapes
         {
@@ -130,13 +130,14 @@ namespace WpfDirect2d
                 InteropImage.RequestRender();
 
                 SyncGeometriesWithShapes();
-                SyncGeometriesWithShapes();
+                SyncBrushesWithShapes();
             }
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            _renderTarget.Dispose();
+            _d3dDevice.Dispose();
+            _context.Dispose();
             foreach (var geometry in _createdGeometries)
             {
                 geometry.Dispose();
@@ -158,35 +159,29 @@ namespace WpfDirect2d
         private void InitializeRenderer(IntPtr handle)
         {
             //if not null dispose the render target
-            _renderTarget?.Dispose();
+            _context?.Dispose();
 
             //create the direct3d 11 device and query interface for DXGI
-            var comObject = new ComObject(handle);
-            var resource = comObject.QueryInterface<SharpDX.DXGI.Resource>();
+            var comObject = new ComObject(handle);            
 
-            if (_d2dFactory == null)
+            if (_d3dDevice == null || _d3dDevice.IsDisposed)
             {
-                _d2dFactory = new Factory();
+                _d3dDevice = new SharpDX.Direct3D11.Device(SharpDX.Direct3D.DriverType.Hardware, SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport);
             }
 
-            //get a Texture2D resource from Direct3D11 to render to (back buffer)
+            var resource = comObject.QueryInterface<SharpDX.DXGI.Resource>();
             var texture = resource.QueryInterface<SharpDX.Direct3D11.Texture2D>();
 
-            //from the texture create a new surface to use as a render target
             using (var surface = texture.QueryInterface<SharpDX.DXGI.Surface>())
             {
-                var properties = new RenderTargetProperties
+                var props = new CreationProperties()
                 {
-                    DpiX = 96,
-                    DpiY = 96,
-                    MinLevel = FeatureLevel.Level_DEFAULT,
-                    PixelFormat = new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied),
-                    Type = RenderTargetType.Default,
-                    Usage = RenderTargetUsage.None
+                    Options = DeviceContextOptions.None,
+                    DebugLevel = DebugLevel.Error,
+                    ThreadingMode = ThreadingMode.SingleThreaded
                 };
-
-                _renderTarget = new RenderTarget(_d2dFactory, surface, properties);
-            }
+                _context = new DeviceContext(surface, props);
+            }                
 
             comObject.Dispose();
             texture.Dispose();
@@ -219,19 +214,19 @@ namespace WpfDirect2d
 
         private void Render(IntPtr resourcePointer, bool isNewSurface)
         {
-            if (_renderTarget == null || _renderRequiresInit || isNewSurface)
+            if (_context == null || _renderRequiresInit || isNewSurface)
             {
                 InitializeRenderer(resourcePointer);
             }
 
-            if (_renderTarget == null || Shapes == null)
+            if (_context == null || Shapes == null)
             {
                 return;
             }
 
-            _renderTarget.BeginDraw();
+            _context.BeginDraw();
 
-            _renderTarget.Clear(Color.Transparent);
+            _context.Clear(Color.Transparent);
 
             //render the geometries
             foreach (var shape in Shapes)
@@ -251,25 +246,25 @@ namespace WpfDirect2d
                         //then scale the geometry by the zoom scale factor
                         //then translate by the pan translation amount
 
-                        _renderTarget.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation)
+                        _context.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation)
                             * Matrix3x2.Scaling(shapeInstance.Scaling)
                             * _zoomScaleTransform
                             * _panTranslateMatrix;
 
                         //render the fill color
-                        _renderTarget.FillGeometry(pathGeometry.Geometry, fillBrush);
+                        _context.FillGeometry(pathGeometry.Geometry, fillBrush);
                         //render the geometry
-                        _renderTarget.DrawGeometry(pathGeometry.Geometry, strokeBrush, shapeInstance.StrokeWidth);                        
+                        _context.DrawGeometry(pathGeometry.Geometry, strokeBrush, shapeInstance.StrokeWidth);
                     }
                 }
             }
-            
-            _renderTarget.EndDraw();
+
+            _context.EndDraw();            
         }
 
         private void SyncGeometriesWithShapes()
         {
-            if (_d2dFactory == null || Shapes == null)
+            if (_context == null || _context.Factory == null ||  Shapes == null)
             {
                 return;
             }
@@ -281,7 +276,7 @@ namespace WpfDirect2d
                 if (_createdGeometries.All(g => g.GeometryPath != shape.GeometryPath))
                 {
                     //vector not created, make it here and store for later
-                    var geometry = new PathGeometry(_d2dFactory);
+                    var geometry = new PathGeometry(_context.Factory);
                     var sink = geometry.Open();
                     VectorGeometryHelper helper = new VectorGeometryHelper(sink);
                     var commands = VectorGraphicParser.ParsePathData(shape.GeometryPath);
@@ -305,7 +300,7 @@ namespace WpfDirect2d
 
         private void SyncBrushesWithShapes()
         {
-            if (_d2dFactory == null || Shapes == null)
+            if (_context == null || _context.Factory == null || Shapes == null)
             {
                 return;
             }
@@ -316,14 +311,14 @@ namespace WpfDirect2d
                 if (_brushResources.All(b => b.Key != instance.FillColor))
                 {
                     //color missing, add it
-                    var solidBrush = new SolidColorBrush(_renderTarget, instance.FillColor.ToDirect2dColor());
+                    var solidBrush = new SolidColorBrush(_context, instance.FillColor.ToDirect2dColor());
                     _brushResources.Add(instance.FillColor, solidBrush);
                 }
 
                 if (_brushResources.All(b => b.Key != instance.StrokeColor))
                 {
                     //color missing, add it
-                    var solidBrush = new SolidColorBrush(_renderTarget, instance.StrokeColor.ToDirect2dColor());
+                    var solidBrush = new SolidColorBrush(_context, instance.StrokeColor.ToDirect2dColor());
                     _brushResources.Add(instance.StrokeColor, solidBrush);
                 }
             }
