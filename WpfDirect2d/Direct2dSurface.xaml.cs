@@ -181,11 +181,11 @@ namespace WpfDirect2d
                     MinLevel = FeatureLevel.Level_DEFAULT,
                     PixelFormat = new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied),
                     Type = RenderTargetType.Default,
-                    Usage = RenderTargetUsage.None
+                    Usage = RenderTargetUsage.None                     
                 };
 
                 var renderTarget = new RenderTarget(_d2dFactory, surface, properties);
-                _context = renderTarget.QueryInterface<DeviceContext1>();
+                _context = renderTarget.QueryInterface<DeviceContext1>();                
             }
 
             comObject.Dispose();
@@ -245,6 +245,7 @@ namespace WpfDirect2d
                         //get the fill and stroke brushes
                         var fillBrush = _brushResources[shapeInstance.FillColor];
                         var strokeBrush = _brushResources[shapeInstance.StrokeColor];
+                        var selectedBrush = _brushResources[shapeInstance.SelectedColor];
 
                         //translate the location by the pixel location of the geometry                        
                         //then scale the geometry by its scaling factor
@@ -268,11 +269,11 @@ namespace WpfDirect2d
                         else
                         {
                             var geometry = (GeometryPath)pathGeometry;
-
+                            
                             //render the fill color
-                            _context.FillGeometry(geometry.Geometry, fillBrush);
+                            _context.FillGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : fillBrush);
                             //render the geometry
-                            _context.DrawGeometry(geometry.Geometry, strokeBrush, shapeInstance.StrokeWidth);
+                            _context.DrawGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : strokeBrush, shapeInstance.StrokeWidth);
                         }
                     }
                 }
@@ -353,6 +354,13 @@ namespace WpfDirect2d
                     var solidBrush = new SolidColorBrush(_context, instance.StrokeColor.ToDirect2dColor());
                     _brushResources.Add(instance.StrokeColor, solidBrush);
                 }
+
+                if (_brushResources.All(b => b.Key != instance.SelectedColor))
+                {
+                    //color missing, add it
+                    var solidBrush = new SolidColorBrush(_context, instance.SelectedColor.ToDirect2dColor());
+                    _brushResources.Add(instance.SelectedColor, solidBrush);
+                }
             }
 
             var colorsToDelete = new List<Wpf.Color>();
@@ -361,7 +369,7 @@ namespace WpfDirect2d
             foreach (var color in _brushResources.Keys)
             {
                 bool colorFound = (from shape in Shapes
-                                   from instance in shape.ShapeInstances.Where(instance => instance.FillColor == color || instance.StrokeColor == color)
+                                   from instance in shape.ShapeInstances.Where(instance => instance.FillColor == color || instance.StrokeColor == color || instance.SelectedColor == color)
                                    select shape).Any();
 
                 if (!colorFound)
@@ -458,14 +466,28 @@ namespace WpfDirect2d
                 foreach (var shape in Shapes)
                 {
                     var pathGeometry = _createdGeometries.OfType<GeometryPath>().FirstOrDefault(g => g.Path == shape.GeometryPath);
-                    foreach (var shapeInstance in shape.ShapeInstances)
+                    if (pathGeometry != null)
                     {
-                        if (!pathGeometry.Geometry.FillContainsPoint(testPoint))
+                        foreach (var shapeInstance in shape.ShapeInstances)
                         {
-                            break;
+                            var translation = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation)
+                                                * Matrix3x2.Scaling(shapeInstance.Scaling)
+                                                * _zoomScaleTransform
+                                                * _panTranslateMatrix;
+
+                            if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 0.5f))
+                            {
+                                shapeInstance.IsSelected = true;                                
+                            }
+                            else
+                            {
+                                shapeInstance.IsSelected = false;
+                            }
                         }
                     }
                 }
+
+                InteropImage.RequestRender();
             }
 
             _isPanning = false;

@@ -15,5 +15,9 @@ namespace WpfDirect2d.Shapes
         public Color StrokeColor { get; set; }
 
         public float StrokeWidth { get; set; }
+
+        public bool IsSelected { get; set; }
+
+        public Color SelectedColor { get; set; }
     }
 }

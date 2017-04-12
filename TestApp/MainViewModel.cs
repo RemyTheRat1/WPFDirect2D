@@ -47,12 +47,12 @@ namespace TestApp
             //circle icon
             var circle = new VectorShape();
             circle.GeometryPath = DOT_CIRCLE_VECTOR;
-            circle.IsGeometryRealized = true;
+            circle.IsGeometryRealized = false;
 
             //move icon
             var moveIcon = new VectorShape();
             moveIcon.GeometryPath = MOVE_VECTOR;
-            moveIcon.IsGeometryRealized = true;
+            moveIcon.IsGeometryRealized = false;
 
             int count = 0;
             while(count < NumberOfItemsToRender)
@@ -63,6 +63,7 @@ namespace TestApp
                     PixelYLocation = GetRandomPixelLocation(),
                     FillColor = Colors.Black,
                     StrokeColor = Colors.Black,
+                    SelectedColor = Colors.Green,
                     StrokeWidth = 0.5f,
                     Scaling = 0.2f
                 });
@@ -73,6 +74,7 @@ namespace TestApp
                     PixelYLocation = GetRandomPixelLocation(),
                     FillColor = Colors.Blue,
                     StrokeColor = Colors.Red,
+                    SelectedColor = Colors.Green,
                     StrokeWidth = 0.5f,
                     Scaling = 0.4f
                 });
@@ -83,6 +85,7 @@ namespace TestApp
                     PixelYLocation = GetRandomPixelLocation(),
                     FillColor = Colors.Black,
                     StrokeColor = Colors.Black,
+                    SelectedColor = Colors.Green,
                     StrokeWidth = 0.5f,
                     Scaling = 0.6f
                 });
@@ -93,6 +96,7 @@ namespace TestApp
                     PixelYLocation = GetRandomPixelLocation(),
                     FillColor = Colors.Blue,
                     StrokeColor = Colors.Red,
+                    SelectedColor = Colors.Green,
                     StrokeWidth = 0.5f,
                     Scaling = 0.8f
                 });
