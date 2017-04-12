@@ -47,10 +47,12 @@ namespace TestApp
             //circle icon
             var circle = new VectorShape();
             circle.GeometryPath = DOT_CIRCLE_VECTOR;
+            circle.IsGeometryRealized = true;
 
             //move icon
             var moveIcon = new VectorShape();
             moveIcon.GeometryPath = MOVE_VECTOR;
+            moveIcon.IsGeometryRealized = true;
 
             int count = 0;
             while(count < NumberOfItemsToRender)

@@ -16,6 +16,11 @@ namespace WpfDirect2d.Shapes
         public string GeometryPath { get; set; }
 
         /// <summary>
+        /// Should the geometry be a realization geometry
+        /// </summary>
+        public bool IsGeometryRealized { get; set; }
+
+        /// <summary>
         /// Collection of instances of this geometry / vector. Each instance has its own width/height, location, and color
         /// </summary>
         public List<VectorShapeInstance> ShapeInstances { get; private set; }

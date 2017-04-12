@@ -22,9 +22,7 @@ namespace WpfDirect2d
         private const float DEFAULT_ZOOM_FACTOR = 0.08f;
 
         private bool _isRenderInitialized;
-
-        private DeviceContext _context;
-        private SharpDX.Direct3D11.Device _d3dDevice;                
+        private DeviceContext1 _context;
 
         private float _scaleFactor;
         private Matrix3x2 _zoomScaleTransform;
@@ -32,9 +30,10 @@ namespace WpfDirect2d
         private Matrix3x2 _panTranslateMatrix;
         private bool _isPanning;
         private Vector _lastPanDragOffset;
+        private Factory1 _d2dFactory;
 
-        private bool _renderRequiresInit;         
-        private readonly List<RenderedGeometryPath> _createdGeometries;
+        private bool _renderRequiresInit;
+        private readonly List<IGeometryPath> _createdGeometries;
         private readonly Dictionary<Wpf.Color, SolidColorBrush> _brushResources;
 
         #region Dependency Properties
@@ -46,9 +45,9 @@ namespace WpfDirect2d
         {
             var control = d as Direct2dSurface;
             if (control != null && control._isRenderInitialized)
-            {
-                control.SyncGeometriesWithShapes();
+            {                
                 control.SyncBrushesWithShapes();
+                control.SyncGeometriesWithShapes();
             }
             control?.RequestRender();
         }
@@ -60,7 +59,7 @@ namespace WpfDirect2d
             DependencyProperty.Register("ZoomFactor", typeof(float), typeof(Direct2dSurface), new PropertyMetadata(DEFAULT_ZOOM_FACTOR));
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));        
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));                
 
         public IEnumerable<VectorShape> Shapes
         {
@@ -91,7 +90,7 @@ namespace WpfDirect2d
         public Direct2dSurface()
         {
             InitializeComponent();
-            _createdGeometries = new List<RenderedGeometryPath>();
+            _createdGeometries = new List<IGeometryPath>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
             ResetPanTranslation();
             ResetZoomScale();
@@ -124,19 +123,18 @@ namespace WpfDirect2d
                 //callback for when a render is requested
                 InteropImage.OnRender = Render;
 
-                _isRenderInitialized = true;                
+                _isRenderInitialized = true;
 
                 //request one frame to be rendered            
                 InteropImage.RequestRender();
-
-                SyncGeometriesWithShapes();
+                
                 SyncBrushesWithShapes();
+                SyncGeometriesWithShapes();
             }
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            _d3dDevice.Dispose();
             _context.Dispose();
             foreach (var geometry in _createdGeometries)
             {
@@ -162,26 +160,33 @@ namespace WpfDirect2d
             _context?.Dispose();
 
             //create the direct3d 11 device and query interface for DXGI
-            var comObject = new ComObject(handle);            
+            var comObject = new ComObject(handle);
+            var resource = comObject.QueryInterface<SharpDX.DXGI.Resource>();
 
-            if (_d3dDevice == null || _d3dDevice.IsDisposed)
+            if (_d2dFactory == null)
             {
-                _d3dDevice = new SharpDX.Direct3D11.Device(SharpDX.Direct3D.DriverType.Hardware, SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport);
+                _d2dFactory = new Factory1();
             }
 
-            var resource = comObject.QueryInterface<SharpDX.DXGI.Resource>();
+            //get a Texture2D resource from Direct3D11 to render to (back buffer)
             var texture = resource.QueryInterface<SharpDX.Direct3D11.Texture2D>();
 
+            //from the texture create a new surface to use as a render target
             using (var surface = texture.QueryInterface<SharpDX.DXGI.Surface>())
             {
-                var props = new CreationProperties()
+                var properties = new RenderTargetProperties
                 {
-                    Options = DeviceContextOptions.None,
-                    DebugLevel = DebugLevel.Error,
-                    ThreadingMode = ThreadingMode.SingleThreaded
+                    DpiX = 96,
+                    DpiY = 96,
+                    MinLevel = FeatureLevel.Level_DEFAULT,
+                    PixelFormat = new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied),
+                    Type = RenderTargetType.Default,
+                    Usage = RenderTargetUsage.None
                 };
-                _context = new DeviceContext(surface, props);
-            }                
+
+                var renderTarget = new RenderTarget(_d2dFactory, surface, properties);
+                _context = renderTarget.QueryInterface<DeviceContext1>();
+            }
 
             comObject.Dispose();
             texture.Dispose();
@@ -232,7 +237,7 @@ namespace WpfDirect2d
             foreach (var shape in Shapes)
             {
                 //get the path geometry for the shape
-                var pathGeometry = _createdGeometries.FirstOrDefault(g => g.GeometryPath == shape.GeometryPath);
+                var pathGeometry = _createdGeometries.FirstOrDefault(g => g.Path == shape.GeometryPath);
                 if (pathGeometry != null)
                 {
                     foreach (var shapeInstance in shape.ShapeInstances)
@@ -250,30 +255,44 @@ namespace WpfDirect2d
                             * Matrix3x2.Scaling(shapeInstance.Scaling)
                             * _zoomScaleTransform
                             * _panTranslateMatrix;
+                        
+                        if (pathGeometry.GeometryType == GeometryType.Realization)
+                        {
+                            var geometry = (GeometryRealizationPath)pathGeometry;
 
-                        //render the fill color
-                        _context.FillGeometry(pathGeometry.Geometry, fillBrush);
-                        //render the geometry
-                        _context.DrawGeometry(pathGeometry.Geometry, strokeBrush, shapeInstance.StrokeWidth);
+                            //render the fill color
+                            _context.DrawGeometryRealization(geometry.FilledGeometry, fillBrush);
+                            //render the geometry
+                            _context.DrawGeometryRealization(geometry.StrokedGeometry, strokeBrush);
+                        }
+                        else
+                        {
+                            var geometry = (GeometryPath)pathGeometry;
+
+                            //render the fill color
+                            _context.FillGeometry(geometry.Geometry, fillBrush);
+                            //render the geometry
+                            _context.DrawGeometry(geometry.Geometry, strokeBrush, shapeInstance.StrokeWidth);
+                        }
                     }
                 }
             }
 
-            _context.EndDraw();            
+            _context.EndDraw();
         }
 
         private void SyncGeometriesWithShapes()
         {
-            if (_context == null || _context.Factory == null ||  Shapes == null)
+            if (_context == null || _context.Factory == null || Shapes == null)
             {
                 return;
             }
 
-            var geometriesToAdd = new List<RenderedGeometryPath>();
+            var geometriesToAdd = new List<IGeometryPath>();
 
             foreach (var shape in Shapes)
             {
-                if (_createdGeometries.All(g => g.GeometryPath != shape.GeometryPath))
+                if (_createdGeometries.All(g => g.Path != shape.GeometryPath))
                 {
                     //vector not created, make it here and store for later
                     var geometry = new PathGeometry(_context.Factory);
@@ -283,12 +302,25 @@ namespace WpfDirect2d
                     helper.Execute(commands);
                     sink.Close();
 
-                    geometriesToAdd.Add(new RenderedGeometryPath(shape.GeometryPath, geometry));                    
+                    if (shape.IsGeometryRealized)
+                    {
+                        float tolerance = 0.5f;
+                        foreach (var shapeInstance in shape.ShapeInstances)
+                        {
+                            var fillRealization = new GeometryRealization(_context, geometry, tolerance);
+                            var strokeRealization = new GeometryRealization(_context, geometry, tolerance, shapeInstance.StrokeWidth, null);
+                            geometriesToAdd.Add(new GeometryRealizationPath(shape.GeometryPath, fillRealization, strokeRealization));
+                        }
+                    }
+                    else
+                    {
+                        geometriesToAdd.Add(new GeometryPath(shape.GeometryPath, geometry));
+                    }
                 }
             }
 
             //get list of geometries that are no longer in the Shapes collection, and delete them
-            foreach (var geometryToDelete in _createdGeometries.Where(geometry => Shapes.All(s => s.GeometryPath != geometry.GeometryPath)).ToList())
+            foreach (var geometryToDelete in _createdGeometries.Where(geometry => Shapes.All(s => s.GeometryPath != geometry.Path)).ToList())
             {
                 geometryToDelete.Dispose();
                 _createdGeometries.Remove(geometryToDelete);
@@ -347,7 +379,7 @@ namespace WpfDirect2d
             }
         }
 
-        private void ImageContainer_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        private void ImageContainer_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             if (!IsMouseWheelZoomEnabled)
             {
@@ -375,7 +407,7 @@ namespace WpfDirect2d
             InteropImage.RequestRender();
         }
 
-        private void ImageContainer_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        private void ImageContainer_MouseMove(object sender, MouseEventArgs e)
         {
             if (!IsPanningEnabled)
             {
@@ -388,7 +420,7 @@ namespace WpfDirect2d
 
                 //get the current offset from the inital mouse left down point and the current move position
                 Point currentMousePoint = e.GetPosition(InteropHost);
-                Vector dragOffset =  currentMousePoint - _mouseMoveStartPoint;
+                Vector dragOffset = currentMousePoint - _mouseMoveStartPoint;
                 //add to this offset the last saved drag offset, so the rendering does not start from the inital point again
                 dragOffset = _lastPanDragOffset + dragOffset;
                 _panTranslateMatrix = Matrix3x2.Translation((float)dragOffset.X, (float)dragOffset.Y);
@@ -397,12 +429,12 @@ namespace WpfDirect2d
             }
         }
 
-        private void ImageContainer_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void ImageContainer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (IsPanningEnabled)
             {
                 _mouseMoveStartPoint = e.GetPosition(InteropHost);
-            }            
+            }
         }
 
         private void ImageContainer_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -425,14 +457,14 @@ namespace WpfDirect2d
                 //do a hit test to see what shape is being clicked on
                 foreach (var shape in Shapes)
                 {
-                    var pathGeometry = _createdGeometries.FirstOrDefault(g => g.GeometryPath == shape.GeometryPath);
+                    var pathGeometry = _createdGeometries.OfType<GeometryPath>().FirstOrDefault(g => g.Path == shape.GeometryPath);
                     foreach (var shapeInstance in shape.ShapeInstances)
                     {
                         if (!pathGeometry.Geometry.FillContainsPoint(testPoint))
                         {
                             break;
                         }
-                    }                    
+                    }
                 }
             }
 
