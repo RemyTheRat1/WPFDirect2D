@@ -475,8 +475,14 @@ namespace WpfDirect2d
                                                 * _zoomScaleTransform
                                                 * _panTranslateMatrix;
 
-                            if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 0.5f))
+                            if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 16f))
                             {
+                                var previousSelectedShape = shape.ShapeInstances.FirstOrDefault(s => s.IsSelected);
+                                if (previousSelectedShape != null)
+                                {
+                                    previousSelectedShape.IsSelected = false;
+                                }
+
                                 shapeInstance.IsSelected = true;                                
                             }
                             else
