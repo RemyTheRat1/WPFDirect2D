@@ -51,6 +51,9 @@ namespace WpfDirect2d
             }
             control?.RequestRender();
         }
+        
+        public static readonly DependencyProperty SelectedShapeProperty =
+            DependencyProperty.Register("SelectedShape", typeof(VectorShapeInstance), typeof(Direct2dSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
 
         public static readonly DependencyProperty IsMouseWheelZoomEnabledProperty =
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
@@ -65,6 +68,12 @@ namespace WpfDirect2d
         {
             get { return (IEnumerable<VectorShape>)GetValue(ShapesProperty); }
             set { SetValue(ShapesProperty, value); }
+        }
+
+        public VectorShapeInstance SelectedShape
+        {
+            get { return (VectorShapeInstance)GetValue(SelectedShapeProperty); }
+            set { SetValue(SelectedShapeProperty, value); }
         }
 
         public bool IsMouseWheelZoomEnabled
@@ -461,6 +470,7 @@ namespace WpfDirect2d
             {
                 var mousePosition = e.GetPosition(InteropHost);
                 var testPoint = new Vector2((float)mousePosition.X, (float)mousePosition.Y);
+                VectorShapeInstance selectedShape = null;
 
                 //do a hit test to see what shape is being clicked on
                 foreach (var shape in Shapes)
@@ -483,7 +493,8 @@ namespace WpfDirect2d
                                     previousSelectedShape.IsSelected = false;
                                 }
 
-                                shapeInstance.IsSelected = true;                                
+                                shapeInstance.IsSelected = true;
+                                selectedShape = shapeInstance;
                             }
                             else
                             {
@@ -493,6 +504,7 @@ namespace WpfDirect2d
                     }
                 }
 
+                SelectedShape = selectedShape;
                 InteropImage.RequestRender();
             }
 

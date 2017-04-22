@@ -18,6 +18,7 @@ namespace TestApp
 
         private int _numberOfItemsToRender;
         private readonly Random _random;
+        private VectorShapeInstance _selectedShape;
 
         public MainViewModel()
         {
@@ -38,6 +39,12 @@ namespace TestApp
         }
 
         public List<VectorShape> Geometries { get; private set; }
+
+        public VectorShapeInstance SelectedShape
+        {
+            get { return _selectedShape; }
+            set { _selectedShape = value; }
+        }
 
         private void GenerateShapes()
         {

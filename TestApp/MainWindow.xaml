@@ -14,7 +14,7 @@
             <Button MinWidth="80" Content="Apply" Command="{Binding ApplyNumberOfRenderItems}" />
         </StackPanel>
         
-        <wpfDirect2D:Direct2dSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" IsMouseWheelZoomEnabled="True" IsPanningEnabled="True" />
+        <wpfDirect2D:Direct2dSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" SelectedShape="{Binding SelectedShape}" IsMouseWheelZoomEnabled="True" IsPanningEnabled="True" />
     </DockPanel>
 
 </Window>
