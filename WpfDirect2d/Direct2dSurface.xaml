@@ -18,7 +18,7 @@
             </Image.Source>
         </Image>
         <Grid.CacheMode>
-            <BitmapCache />
+            <BitmapCache RenderAtScale="8.0" />
         </Grid.CacheMode>
     </Grid>
 </UserControl>
