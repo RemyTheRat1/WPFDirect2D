@@ -17,5 +17,8 @@
                 <directX:D3D11Image x:Name="InteropImage" />
             </Image.Source>
         </Image>
+        <Grid.CacheMode>
+            <BitmapCache />
+        </Grid.CacheMode>
     </Grid>
 </UserControl>

@@ -18,18 +18,15 @@ namespace WpfDirect2d
     /// Interaction logic for Direct2dSurface.xaml
     /// </summary>
     public partial class Direct2dSurface : UserControl
-    {
-        private const float DEFAULT_ZOOM_FACTOR = 0.08f;
+    {        
+        private const double ZOOM_IN_FACTOR = 1.1;
+        private const double ZOOM_OUT_FACTOR = 0.9;
 
         private bool _isRenderInitialized;
         private DeviceContext1 _context;
 
-        private float _scaleFactor;
-        private Matrix3x2 _zoomScaleTransform;
         private Point _mouseMoveStartPoint;
-        private Matrix3x2 _panTranslateMatrix;
         private bool _isPanning;
-        private Vector _lastPanDragOffset;
         private Factory1 _d2dFactory;
 
         private bool _renderRequiresInit;
@@ -45,24 +42,21 @@ namespace WpfDirect2d
         {
             var control = d as Direct2dSurface;
             if (control != null && control._isRenderInitialized)
-            {                
+            {
                 control.SyncBrushesWithShapes();
                 control.SyncGeometriesWithShapes();
             }
             control?.RequestRender();
         }
-        
+
         public static readonly DependencyProperty SelectedShapeProperty =
             DependencyProperty.Register("SelectedShape", typeof(VectorShapeInstance), typeof(Direct2dSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
 
         public static readonly DependencyProperty IsMouseWheelZoomEnabledProperty =
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
 
-        public static readonly DependencyProperty ZoomFactorProperty =
-            DependencyProperty.Register("ZoomFactor", typeof(float), typeof(Direct2dSurface), new PropertyMetadata(DEFAULT_ZOOM_FACTOR));
-
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));                
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));
 
         public IEnumerable<VectorShape> Shapes
         {
@@ -82,12 +76,6 @@ namespace WpfDirect2d
             set { SetValue(IsMouseWheelZoomEnabledProperty, value); }
         }
 
-        public float ZoomFactor
-        {
-            get { return (float)GetValue(ZoomFactorProperty); }
-            set { SetValue(ZoomFactorProperty, value); }
-        }
-
         public bool IsPanningEnabled
         {
             get { return (bool)GetValue(IsPanningEnabledProperty); }
@@ -101,8 +89,6 @@ namespace WpfDirect2d
             InitializeComponent();
             _createdGeometries = new List<IGeometryPath>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
-            ResetPanTranslation();
-            ResetZoomScale();
 
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
@@ -136,7 +122,7 @@ namespace WpfDirect2d
 
                 //request one frame to be rendered            
                 InteropImage.RequestRender();
-                
+
                 SyncBrushesWithShapes();
                 SyncGeometriesWithShapes();
             }
@@ -157,9 +143,6 @@ namespace WpfDirect2d
             _createdGeometries.Clear();
             _brushResources.Clear();
 
-            ResetZoomScale();
-            ResetPanTranslation();
-
             _isRenderInitialized = false;
         }
 
@@ -167,6 +150,11 @@ namespace WpfDirect2d
         {
             //if not null dispose the render target
             _context?.Dispose();
+
+            if (InteropImage.PixelHeight == 0 && InteropImage.PixelWidth == 0)
+            {
+                SetInteropImagePixelSize();
+            }
 
             //create the direct3d 11 device and query interface for DXGI
             var comObject = new ComObject(handle);
@@ -181,20 +169,20 @@ namespace WpfDirect2d
             var texture = resource.QueryInterface<SharpDX.Direct3D11.Texture2D>();
 
             //from the texture create a new surface to use as a render target
-            using (var surface = texture.QueryInterface<SharpDX.DXGI.Surface>())
+            using (var surface = texture.QueryInterface<SharpDX.DXGI.Surface1>())
             {
                 var properties = new RenderTargetProperties
                 {
                     DpiX = 96,
                     DpiY = 96,
                     MinLevel = FeatureLevel.Level_DEFAULT,
-                    PixelFormat = new PixelFormat(SharpDX.DXGI.Format.Unknown, AlphaMode.Premultiplied),
+                    PixelFormat = new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied),
                     Type = RenderTargetType.Default,
-                    Usage = RenderTargetUsage.None                     
+                    Usage = RenderTargetUsage.None
                 };
 
                 var renderTarget = new RenderTarget(_d2dFactory, surface, properties);
-                _context = renderTarget.QueryInterface<DeviceContext1>();                
+                _context = renderTarget.QueryInterface<DeviceContext1>();
             }
 
             comObject.Dispose();
@@ -204,6 +192,14 @@ namespace WpfDirect2d
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            SetInteropImagePixelSize();
+
+            _renderRequiresInit = true;
+            InteropImage.RequestRender();
+        }
+
+        private void SetInteropImagePixelSize()
         {
             double dpiScale = 1.0; // default value for 96 dpi
 
@@ -221,9 +217,6 @@ namespace WpfDirect2d
 
             // notify the D3D11Image and the DxRendering component of the pixel size desired for the DirectX rendering.
             InteropImage.SetPixelSize(surfWidth, surfHeight);
-
-            _renderRequiresInit = true;
-            InteropImage.RequestRender();
         }
 
         private void Render(IntPtr resourcePointer, bool isNewSurface)
@@ -239,7 +232,6 @@ namespace WpfDirect2d
             }
 
             _context.BeginDraw();
-
             _context.Clear(Color.Transparent);
 
             //render the geometries
@@ -258,14 +250,12 @@ namespace WpfDirect2d
 
                         //translate the location by the pixel location of the geometry                        
                         //then scale the geometry by its scaling factor
-                        //then scale the geometry by the zoom scale factor
-                        //then translate by the pan translation amount
+                        //then scale the geometry by the zoom scale factor (wpf will do transform for zooming, not needed here)
+                        //then translate by the pan translation amount (wpf will do the transform for panning, not needed here)
 
                         _context.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation)
-                            * Matrix3x2.Scaling(shapeInstance.Scaling)
-                            * _zoomScaleTransform
-                            * _panTranslateMatrix;
-                        
+                            * Matrix3x2.Scaling(shapeInstance.Scaling);                                                   
+
                         if (pathGeometry.GeometryType == GeometryType.Realization)
                         {
                             var geometry = (GeometryRealizationPath)pathGeometry;
@@ -278,7 +268,7 @@ namespace WpfDirect2d
                         else
                         {
                             var geometry = (GeometryPath)pathGeometry;
-                            
+
                             //render the fill color
                             _context.FillGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : fillBrush);
                             //render the geometry
@@ -287,7 +277,6 @@ namespace WpfDirect2d
                     }
                 }
             }
-
             _context.EndDraw();
         }
 
@@ -403,25 +392,33 @@ namespace WpfDirect2d
                 return;
             }
 
-            //get the point the mouse is at to zoom about
-            var screenPosition = e.GetPosition(InteropHost);
-            Vector2 scalePoint = new Vector2((float)screenPosition.X, (float)screenPosition.Y);
+            double x = e.GetPosition(ImageContainer).X;
+            double y = e.GetPosition(ImageContainer).Y;
+            Zoom(e.Delta, new Point(x, y));
+        }
 
-            if (e.Delta < 0)
+        private void Zoom(int zoomValue, Point pointToScaleAbout)
+        {
+            Wpf.Matrix workPieceImageZoom = ImageContainer.RenderTransform.Value;
+
+            if (zoomValue > 0)
             {
-                Zoom(-ZoomFactor, scalePoint);
+                if (IsMouseWheelZoomEnabled)
+                {
+                    workPieceImageZoom.ScaleAtPrepend(ZOOM_IN_FACTOR, ZOOM_IN_FACTOR, pointToScaleAbout.X, pointToScaleAbout.Y); // Scale + about current point                    
+                }
             }
             else
             {
-                Zoom(ZoomFactor, scalePoint);
+                workPieceImageZoom.ScaleAtPrepend(ZOOM_OUT_FACTOR, ZOOM_OUT_FACTOR, pointToScaleAbout.X, pointToScaleAbout.Y);
+                if (workPieceImageZoom.M22 < 1 || workPieceImageZoom.M11 < 1)   // If scale value of zoom in either dimension is under 1, reset to identity
+                {
+                    workPieceImageZoom.SetIdentity();                    
+                }
             }
-        }
 
-        private void Zoom(float zoomFactor, Vector2 zoomPoint)
-        {
-            _scaleFactor += zoomFactor;
-            _zoomScaleTransform = Matrix3x2.Scaling(_scaleFactor, _scaleFactor, zoomPoint);
-            InteropImage.RequestRender();
+            //ZoomScale = workPieceImageZoom.M11;
+            ImageContainer.RenderTransform = new Wpf.MatrixTransform(workPieceImageZoom);            
         }
 
         private void ImageContainer_MouseMove(object sender, MouseEventArgs e)
@@ -435,14 +432,16 @@ namespace WpfDirect2d
             {
                 _isPanning = true;
 
-                //get the current offset from the inital mouse left down point and the current move position
-                Point currentMousePoint = e.GetPosition(InteropHost);
-                Vector dragOffset = currentMousePoint - _mouseMoveStartPoint;
-                //add to this offset the last saved drag offset, so the rendering does not start from the inital point again
-                dragOffset = _lastPanDragOffset + dragOffset;
-                _panTranslateMatrix = Matrix3x2.Translation((float)dragOffset.X, (float)dragOffset.Y);
+                Wpf.Matrix workPieceImageZoom = ImageContainer.RenderTransform.Value;
 
-                InteropImage.RequestRender();
+                Point currentMousePoint = e.GetPosition(ImageContainer);
+                Vector dragOffset = currentMousePoint - _mouseMoveStartPoint;
+
+                //smoothing / scaling factor for pan movements
+                double scaleMultiplier = 5 * Math.Log10(1.0) + 1;
+                workPieceImageZoom.Translate(dragOffset.X * scaleMultiplier, dragOffset.Y * scaleMultiplier);
+
+                ImageContainer.RenderTransform = new Wpf.MatrixTransform(workPieceImageZoom);
             }
         }
 
@@ -461,12 +460,7 @@ namespace WpfDirect2d
                 return;
             }
 
-            if (_isPanning)
-            {
-                //save the last translation values for future panning operations
-                _lastPanDragOffset = new Vector(_panTranslateMatrix.TranslationVector.X, _panTranslateMatrix.TranslationVector.Y);
-            }
-            else
+            if (!_isPanning)
             {
                 var mousePosition = e.GetPosition(InteropHost);
                 var testPoint = new Vector2((float)mousePosition.X, (float)mousePosition.Y);
@@ -480,10 +474,7 @@ namespace WpfDirect2d
                     {
                         foreach (var shapeInstance in shape.ShapeInstances)
                         {
-                            var translation = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation)
-                                                * Matrix3x2.Scaling(shapeInstance.Scaling)
-                                                * _zoomScaleTransform
-                                                * _panTranslateMatrix;
+                            var translation = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation) * Matrix3x2.Scaling(shapeInstance.Scaling);
 
                             if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 16f))
                             {
@@ -509,18 +500,6 @@ namespace WpfDirect2d
             }
 
             _isPanning = false;
-        }
-
-        private void ResetZoomScale()
-        {
-            _zoomScaleTransform = Matrix3x2.Identity;
-            _scaleFactor = 1;
-        }
-
-        private void ResetPanTranslation()
-        {
-            _panTranslateMatrix = Matrix3x2.Identity;
-            _lastPanDragOffset = new Vector();
         }
     }
 }
