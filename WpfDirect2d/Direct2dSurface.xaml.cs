@@ -50,7 +50,7 @@ namespace WpfDirect2d
         }
 
         public static readonly DependencyProperty SelectedShapeProperty =
-            DependencyProperty.Register("SelectedShape", typeof(VectorShapeInstance), typeof(Direct2dSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
+            DependencyProperty.Register("SelectedShape", typeof(VectorShape), typeof(Direct2dSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
 
         public static readonly DependencyProperty IsMouseWheelZoomEnabledProperty =
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
@@ -64,9 +64,9 @@ namespace WpfDirect2d
             set { SetValue(ShapesProperty, value); }
         }
 
-        public VectorShapeInstance SelectedShape
+        public VectorShape SelectedShape
         {
-            get { return (VectorShapeInstance)GetValue(SelectedShapeProperty); }
+            get { return (VectorShape)GetValue(SelectedShapeProperty); }
             set { SetValue(SelectedShapeProperty, value); }
         }
 
@@ -241,28 +241,25 @@ namespace WpfDirect2d
                 var pathGeometry = _createdGeometries.FirstOrDefault(g => g.Path == shape.GeometryPath);
                 if (pathGeometry != null)
                 {
-                    foreach (var shapeInstance in shape.ShapeInstances)
-                    {
-                        //get the fill and stroke brushes
-                        var fillBrush = _brushResources[shapeInstance.FillColor];
-                        var strokeBrush = _brushResources[shapeInstance.StrokeColor];
-                        var selectedBrush = _brushResources[shapeInstance.SelectedColor];
+                    //get the fill and stroke brushes
+                    var fillBrush = _brushResources[shape.FillColor];
+                    var strokeBrush = _brushResources[shape.StrokeColor];
+                    var selectedBrush = _brushResources[shape.SelectedColor];
 
-                        //translate the location by the pixel location of the geometry                        
-                        //then scale the geometry by its scaling factor
-                        //then scale the geometry by the zoom scale factor (wpf will do transform for zooming, not needed here)
-                        //then translate by the pan translation amount (wpf will do the transform for panning, not needed here)
+                    //translate the location by the pixel location of the geometry                        
+                    //then scale the geometry by its scaling factor
+                    //then scale the geometry by the zoom scale factor (wpf will do transform for zooming, not needed here)
+                    //then translate by the pan translation amount (wpf will do the transform for panning, not needed here)
 
-                        _context.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation)
-                            * Matrix3x2.Scaling(shapeInstance.Scaling);
+                    _context.Transform = Matrix3x2.Translation(shape.PixelXLocation, shape.PixelYLocation)
+                        * Matrix3x2.Scaling(shape.Scaling);
 
-                        var geometry = (GeometryPath)pathGeometry;
+                    var geometry = pathGeometry;
 
-                        //render the fill color
-                        _context.FillGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : fillBrush);
-                        //render the geometry
-                        _context.DrawGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : strokeBrush, shapeInstance.StrokeWidth);
-                    }
+                    //render the fill color
+                    _context.FillGeometry(geometry.Geometry, shape.IsSelected ? selectedBrush : fillBrush);
+                    //render the geometry
+                    _context.DrawGeometry(geometry.Geometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth);
                 }
             }
             _context.EndDraw();
@@ -312,7 +309,7 @@ namespace WpfDirect2d
             }
 
             //add any missing brushes
-            foreach (var instance in Shapes.SelectMany(shape => shape.ShapeInstances))
+            foreach (var instance in Shapes)
             {
                 if (_brushResources.All(b => b.Key != instance.FillColor))
                 {
@@ -341,10 +338,7 @@ namespace WpfDirect2d
             //delete any brushes not in use anymore
             foreach (var color in _brushResources.Keys)
             {
-                bool colorFound = (from shape in Shapes
-                                   from instance in shape.ShapeInstances.Where(instance => instance.FillColor == color || instance.StrokeColor == color || instance.SelectedColor == color)
-                                   select shape).Any();
-
+                bool colorFound = Shapes.Any(instance => instance.FillColor == color || instance.StrokeColor == color || instance.SelectedColor == color);
                 if (!colorFound)
                 {
                     colorsToDelete.Add(color);
@@ -439,7 +433,7 @@ namespace WpfDirect2d
             {
                 var mousePosition = e.GetPosition(InteropHost);
                 var testPoint = new Vector2((float)mousePosition.X, (float)mousePosition.Y);
-                VectorShapeInstance selectedShape = null;
+                VectorShape selectedShape = null;
 
                 //do a hit test to see what shape is being clicked on
                 foreach (var shape in Shapes)
@@ -447,25 +441,23 @@ namespace WpfDirect2d
                     var pathGeometry = _createdGeometries.FirstOrDefault(g => g.Path == shape.GeometryPath);
                     if (pathGeometry != null)
                     {
-                        foreach (var shapeInstance in shape.ShapeInstances)
+
+                        var translation = Matrix3x2.Translation(shape.PixelXLocation, shape.PixelYLocation) * Matrix3x2.Scaling(shape.Scaling);
+
+                        if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
                         {
-                            var translation = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation) * Matrix3x2.Scaling(shapeInstance.Scaling);
-
-                            if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
+                            var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
+                            if (previousSelectedShape != null)
                             {
-                                var previousSelectedShape = shape.ShapeInstances.FirstOrDefault(s => s.IsSelected);
-                                if (previousSelectedShape != null)
-                                {
-                                    previousSelectedShape.IsSelected = false;
-                                }
+                                previousSelectedShape.IsSelected = false;
+                            }
 
-                                shapeInstance.IsSelected = true;
-                                selectedShape = shapeInstance;
-                            }
-                            else
-                            {
-                                shapeInstance.IsSelected = false;
-                            }
+                            shape.IsSelected = true;
+                            selectedShape = shape;
+                        }
+                        else
+                        {
+                            shape.IsSelected = false;
                         }
                     }
                 }

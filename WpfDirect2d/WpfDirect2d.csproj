@@ -95,7 +95,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Shapes\GeometryPath.cs" />
     <Compile Include="Shapes\VectorShape.cs" />
-    <Compile Include="Shapes\VectorShapeInstance.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="Direct2dSurface.xaml">
@@ -123,10 +122,8 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Fody.2.0.6\build\netstandard1.4\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Fody.2.0.6\build\netstandard1.4\Fody.targets'))" />
   </Target>
-  <Target 
-    AfterTargets="AfterBuild;NonWinFodyTarget"
-    Name="CleanReferenceCopyLocalPaths" >
-     <Delete Files="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')" />
+  <Target AfterTargets="AfterBuild;NonWinFodyTarget" Name="CleanReferenceCopyLocalPaths">
+    <Delete Files="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

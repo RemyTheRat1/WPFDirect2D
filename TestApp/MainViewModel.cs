@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
 using Prism.Commands;
@@ -18,7 +15,7 @@ namespace TestApp
 
         private int _numberOfItemsToRender;
         private readonly Random _random;
-        private VectorShapeInstance _selectedShape;
+        private VectorShape _selectedShape;
 
         public MainViewModel()
         {
@@ -40,7 +37,7 @@ namespace TestApp
 
         public List<VectorShape> Geometries { get; private set; }
 
-        public VectorShapeInstance SelectedShape
+        public VectorShape SelectedShape
         {
             get { return _selectedShape; }
             set { _selectedShape = value; }
@@ -49,21 +46,16 @@ namespace TestApp
         private void GenerateShapes()
         {
             Geometries = null;
-            OnPropertyChanged(() => Geometries);
+            //OnPropertyChanged(() => Geometries);
 
-            //circle icon
-            var circle = new VectorShape();
-            circle.GeometryPath = DOT_CIRCLE_VECTOR;
-
-            //move icon
-            var moveIcon = new VectorShape();
-            moveIcon.GeometryPath = MOVE_VECTOR;
+            var geometryList = new List<VectorShape>();
 
             int count = 0;
             while(count < NumberOfItemsToRender)
             {
-                circle.ShapeInstances.Add(new VectorShapeInstance
+                geometryList.Add(new VectorShape
                 {
+                    GeometryPath = DOT_CIRCLE_VECTOR,
                     PixelXLocation = GetRandomPixelLocation(),
                     PixelYLocation = GetRandomPixelLocation(),
                     FillColor = Colors.Black,
@@ -73,8 +65,9 @@ namespace TestApp
                     Scaling = 0.2f
                 });
 
-                circle.ShapeInstances.Add(new VectorShapeInstance
+                geometryList.Add(new VectorShape
                 {
+                    GeometryPath = DOT_CIRCLE_VECTOR,
                     PixelXLocation = GetRandomPixelLocation(),
                     PixelYLocation = GetRandomPixelLocation(),
                     FillColor = Colors.Blue,
@@ -84,8 +77,9 @@ namespace TestApp
                     Scaling = 0.4f
                 });
 
-                moveIcon.ShapeInstances.Add(new VectorShapeInstance
+                geometryList.Add(new VectorShape
                 {
+                    GeometryPath = MOVE_VECTOR,
                     PixelXLocation = GetRandomPixelLocation(),
                     PixelYLocation = GetRandomPixelLocation(),
                     FillColor = Colors.Black,
@@ -95,8 +89,9 @@ namespace TestApp
                     Scaling = 0.6f
                 });
 
-                moveIcon.ShapeInstances.Add(new VectorShapeInstance
+                geometryList.Add(new VectorShape
                 {
+                    GeometryPath = MOVE_VECTOR,
                     PixelXLocation = GetRandomPixelLocation(),
                     PixelYLocation = GetRandomPixelLocation(),
                     FillColor = Colors.Blue,
@@ -109,10 +104,7 @@ namespace TestApp
                 count += 4;
             }
 
-            Geometries = new List<VectorShape>
-            {
-                circle, moveIcon
-            };
+            Geometries = new List<VectorShape>(geometryList);
             OnPropertyChanged(() => Geometries);
         }
 
