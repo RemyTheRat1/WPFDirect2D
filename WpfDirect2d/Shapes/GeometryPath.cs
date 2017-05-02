@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using SharpDX.Direct2D1;
 
 namespace WpfDirect2d.Shapes
 {
-    internal class GeometryPath : IGeometryPath
+    internal class GeometryPath : IDisposable
     {
         public GeometryPath(string geometryPath, PathGeometry geometry)
         {
@@ -16,9 +13,7 @@ namespace WpfDirect2d.Shapes
 
         public string Path { get; set; }
 
-        public PathGeometry Geometry { get; set; }
-
-        public GeometryType GeometryType => GeometryType.Normal;
+        public PathGeometry Geometry { get; set; }        
 
         public void Dispose()
         {

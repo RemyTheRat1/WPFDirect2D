@@ -18,7 +18,7 @@ namespace WpfDirect2d
     /// Interaction logic for Direct2dSurface.xaml
     /// </summary>
     public partial class Direct2dSurface : UserControl
-    {        
+    {
         private const double ZOOM_IN_FACTOR = 1.1;
         private const double ZOOM_OUT_FACTOR = 0.9;
 
@@ -30,7 +30,7 @@ namespace WpfDirect2d
         private Factory1 _d2dFactory;
 
         private bool _renderRequiresInit;
-        private readonly List<IGeometryPath> _createdGeometries;
+        private readonly List<GeometryPath> _createdGeometries;
         private readonly Dictionary<Wpf.Color, SolidColorBrush> _brushResources;
 
         #region Dependency Properties
@@ -87,7 +87,7 @@ namespace WpfDirect2d
         public Direct2dSurface()
         {
             InitializeComponent();
-            _createdGeometries = new List<IGeometryPath>();
+            _createdGeometries = new List<GeometryPath>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
 
             Loaded += OnLoaded;
@@ -254,26 +254,14 @@ namespace WpfDirect2d
                         //then translate by the pan translation amount (wpf will do the transform for panning, not needed here)
 
                         _context.Transform = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation)
-                            * Matrix3x2.Scaling(shapeInstance.Scaling);                                                   
+                            * Matrix3x2.Scaling(shapeInstance.Scaling);
 
-                        if (pathGeometry.GeometryType == GeometryType.Realization)
-                        {
-                            var geometry = (GeometryRealizationPath)pathGeometry;
+                        var geometry = (GeometryPath)pathGeometry;
 
-                            //render the fill color
-                            _context.DrawGeometryRealization(geometry.FilledGeometry, fillBrush);
-                            //render the geometry
-                            _context.DrawGeometryRealization(geometry.StrokedGeometry, strokeBrush);
-                        }
-                        else
-                        {
-                            var geometry = (GeometryPath)pathGeometry;
-
-                            //render the fill color
-                            _context.FillGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : fillBrush);
-                            //render the geometry
-                            _context.DrawGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : strokeBrush, shapeInstance.StrokeWidth);
-                        }
+                        //render the fill color
+                        _context.FillGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : fillBrush);
+                        //render the geometry
+                        _context.DrawGeometry(geometry.Geometry, shapeInstance.IsSelected ? selectedBrush : strokeBrush, shapeInstance.StrokeWidth);
                     }
                 }
             }
@@ -287,7 +275,7 @@ namespace WpfDirect2d
                 return;
             }
 
-            var geometriesToAdd = new List<IGeometryPath>();
+            var geometriesToAdd = new List<GeometryPath>();
 
             foreach (var shape in Shapes)
             {
@@ -301,20 +289,7 @@ namespace WpfDirect2d
                     helper.Execute(commands);
                     sink.Close();
 
-                    if (shape.IsGeometryRealized)
-                    {
-                        float tolerance = 0.5f;
-                        foreach (var shapeInstance in shape.ShapeInstances)
-                        {
-                            var fillRealization = new GeometryRealization(_context, geometry, tolerance);
-                            var strokeRealization = new GeometryRealization(_context, geometry, tolerance, shapeInstance.StrokeWidth, null);
-                            geometriesToAdd.Add(new GeometryRealizationPath(shape.GeometryPath, fillRealization, strokeRealization));
-                        }
-                    }
-                    else
-                    {
-                        geometriesToAdd.Add(new GeometryPath(shape.GeometryPath, geometry));
-                    }
+                    geometriesToAdd.Add(new GeometryPath(shape.GeometryPath, geometry));
                 }
             }
 
@@ -413,12 +388,12 @@ namespace WpfDirect2d
                 workPieceImageZoom.ScaleAtPrepend(ZOOM_OUT_FACTOR, ZOOM_OUT_FACTOR, pointToScaleAbout.X, pointToScaleAbout.Y);
                 if (workPieceImageZoom.M22 < 1 || workPieceImageZoom.M11 < 1)   // If scale value of zoom in either dimension is under 1, reset to identity
                 {
-                    workPieceImageZoom.SetIdentity();                    
+                    workPieceImageZoom.SetIdentity();
                 }
             }
 
             //ZoomScale = workPieceImageZoom.M11;
-            ImageContainer.RenderTransform = new Wpf.MatrixTransform(workPieceImageZoom);            
+            ImageContainer.RenderTransform = new Wpf.MatrixTransform(workPieceImageZoom);
         }
 
         private void ImageContainer_MouseMove(object sender, MouseEventArgs e)
@@ -469,14 +444,14 @@ namespace WpfDirect2d
                 //do a hit test to see what shape is being clicked on
                 foreach (var shape in Shapes)
                 {
-                    var pathGeometry = _createdGeometries.OfType<GeometryPath>().FirstOrDefault(g => g.Path == shape.GeometryPath);
+                    var pathGeometry = _createdGeometries.FirstOrDefault(g => g.Path == shape.GeometryPath);
                     if (pathGeometry != null)
                     {
                         foreach (var shapeInstance in shape.ShapeInstances)
                         {
                             var translation = Matrix3x2.Translation(shapeInstance.PixelXLocation, shapeInstance.PixelYLocation) * Matrix3x2.Scaling(shapeInstance.Scaling);
 
-                            if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 16f))
+                            if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
                             {
                                 var previousSelectedShape = shape.ShapeInstances.FirstOrDefault(s => s.IsSelected);
                                 if (previousSelectedShape != null)

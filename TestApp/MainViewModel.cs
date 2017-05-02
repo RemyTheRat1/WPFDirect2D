@@ -54,12 +54,10 @@ namespace TestApp
             //circle icon
             var circle = new VectorShape();
             circle.GeometryPath = DOT_CIRCLE_VECTOR;
-            circle.IsGeometryRealized = false;
 
             //move icon
             var moveIcon = new VectorShape();
             moveIcon.GeometryPath = MOVE_VECTOR;
-            moveIcon.IsGeometryRealized = false;
 
             int count = 0;
             while(count < NumberOfItemsToRender)
@@ -120,7 +118,7 @@ namespace TestApp
 
         private int GetRandomPixelLocation()
         {
-            return _random.Next(10, 600);
+            return _random.Next(10, 1024);
         }
     }
 }

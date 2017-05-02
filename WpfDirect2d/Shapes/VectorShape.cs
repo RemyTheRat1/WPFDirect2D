@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using SharpDX;
 
 namespace WpfDirect2d.Shapes
 {
@@ -14,11 +13,6 @@ namespace WpfDirect2d.Shapes
         /// Path describing the geometry in svg / xaml path format
         /// </summary>
         public string GeometryPath { get; set; }
-
-        /// <summary>
-        /// Should the geometry be a realization geometry
-        /// </summary>
-        public bool IsGeometryRealized { get; set; }
 
         /// <summary>
         /// Collection of instances of this geometry / vector. Each instance has its own width/height, location, and color
