@@ -1,26 +1,25 @@
-﻿using System;
-using SharpDX.Direct2D1;
+﻿using SharpDX.Direct2D1;
 
 namespace WpfDirect2d.Shapes
 {
-    internal class GeometryPath : IDisposable
+    internal class GeometryPath : BaseGeometry
     {
-        public GeometryPath(string geometryPath, PathGeometry geometry)
+        public GeometryPath(string geometryPath, PathGeometry geometry) : base(geometry)
         {
-            Path = geometryPath;
-            Geometry = geometry;
+            Path = geometryPath;            
         }
 
         public string Path { get; set; }
 
-        public PathGeometry Geometry { get; set; }        
-
-        public void Dispose()
+        public override bool IsGeometryForShape(IShape shape)
         {
-            if (Geometry != null)
+            var pathShape = shape as VectorShape;
+            if (pathShape == null)
             {
-                Geometry.Dispose();
+                return false;
             }
+
+            return pathShape.GeometryPath == Path;
         }
     }
 }

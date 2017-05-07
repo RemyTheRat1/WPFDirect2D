@@ -5,6 +5,7 @@ using System.Windows.Media;
 using Prism.Commands;
 using WpfDirect2d.Shapes;
 using Prism.Mvvm;
+using System.Windows;
 
 namespace TestApp
 {
@@ -15,29 +16,29 @@ namespace TestApp
 
         private int _numberOfItemsToRender;
         private readonly Random _random;
-        private VectorShape _selectedShape;
+        private IShape _selectedShape;
 
         public MainViewModel()
         {
             _random = new Random(10);
             ApplyNumberOfRenderItems = new DelegateCommand(() => GenerateShapes());
             NumberOfItemsToRender = 10;
-            Geometries = new List<VectorShape>();
+            Geometries = new List<IShape>();
 
-            GenerateShapes();            
+            GenerateShapes();
         }
 
         public ICommand ApplyNumberOfRenderItems { get; private set; }
-        
+
         public int NumberOfItemsToRender
         {
             get { return _numberOfItemsToRender; }
             set { SetProperty(ref _numberOfItemsToRender, value); }
         }
 
-        public List<VectorShape> Geometries { get; private set; }
+        public List<IShape> Geometries { get; private set; }
 
-        public VectorShape SelectedShape
+        public IShape SelectedShape
         {
             get { return _selectedShape; }
             set { _selectedShape = value; }
@@ -46,12 +47,10 @@ namespace TestApp
         private void GenerateShapes()
         {
             Geometries = null;
-            //OnPropertyChanged(() => Geometries);
-
-            var geometryList = new List<VectorShape>();
+            var geometryList = new List<IShape>();
 
             int count = 0;
-            while(count < NumberOfItemsToRender)
+            while (count < NumberOfItemsToRender)
             {
                 geometryList.Add(new VectorShape
                 {
@@ -104,7 +103,22 @@ namespace TestApp
                 count += 4;
             }
 
-            Geometries = new List<VectorShape>(geometryList);
+            //add a line
+            var line = new LineShape
+            {
+                FillColor = Colors.Blue,
+                StrokeColor = Colors.Blue,
+                SelectedColor = Colors.PaleVioletRed,
+                StrokeWidth = 4f,
+                IsLineClosed = false
+            };
+            line.LineNodes.Add(new Point(10, 40));
+            line.LineNodes.Add(new Point(400, 10));
+            line.LineNodes.Add(new Point(400, 400));            
+
+            geometryList.Add(line);
+
+            Geometries = new List<IShape>(geometryList);
             OnPropertyChanged(() => Geometries);
         }
 
