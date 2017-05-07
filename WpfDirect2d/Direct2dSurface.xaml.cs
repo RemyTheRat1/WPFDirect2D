@@ -57,7 +57,6 @@ namespace WpfDirect2d
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
             DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));
-        private Matrix3x2 _zoomMatrix;
 
         public IEnumerable<IShape> Shapes
         {
@@ -256,15 +255,14 @@ namespace WpfDirect2d
                     if (vectorShape != null)
                     {
                         _context.Transform = Matrix3x2.Translation(vectorShape.PixelXLocation, vectorShape.PixelYLocation)
-                            * Matrix3x2.Scaling(vectorShape.Scaling)
-                            * _zoomMatrix;
+                            * Matrix3x2.Scaling(vectorShape.Scaling);
 
                         //render the fill color
                         _context.FillGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : fillBrush);
                     }
                     else
                     {
-                        _context.Transform = _zoomMatrix;
+                        _context.Transform = Matrix3x2.Identity;
                     }
 
                     //render the geometry
@@ -416,33 +414,23 @@ namespace WpfDirect2d
                 return;
             }
 
+            Wpf.Matrix imageZoom = ImageContainer.RenderTransform.Value;
+
             if (zoomValue > 0)
             {
-                _zoomMatrix = Matrix3x2.Scaling(1.1f, 1.1f, new Vector2(Convert.ToSingle(pointToScaleAbout.X), Convert.ToSingle(pointToScaleAbout.Y)));
+                imageZoom.ScaleAtPrepend(ZOOM_IN_FACTOR, ZOOM_IN_FACTOR, pointToScaleAbout.X, pointToScaleAbout.Y); // Scale + about current point                    
             }
             else
             {
-                _zoomMatrix = Matrix3x2.Scaling(0.9f, 0.9f, new Vector2(Convert.ToSingle(pointToScaleAbout.X), Convert.ToSingle(pointToScaleAbout.Y)));
+                imageZoom.ScaleAtPrepend(ZOOM_OUT_FACTOR, ZOOM_OUT_FACTOR, pointToScaleAbout.X, pointToScaleAbout.Y);
+                if (imageZoom.M22 < 1 || imageZoom.M11 < 1)   // If scale value of zoom in either dimension is under 1, reset to identity
+                {
+                    imageZoom.SetIdentity();
+                }
             }
-            InteropImage.RequestRender();
 
-            //Wpf.Matrix imageZoom = ImageContainer.RenderTransform.Value;
-
-            //if (zoomValue > 0)
-            //{
-            //    imageZoom.ScaleAtPrepend(ZOOM_IN_FACTOR, ZOOM_IN_FACTOR, pointToScaleAbout.X, pointToScaleAbout.Y); // Scale + about current point                    
-            //}
-            //else
-            //{
-            //    imageZoom.ScaleAtPrepend(ZOOM_OUT_FACTOR, ZOOM_OUT_FACTOR, pointToScaleAbout.X, pointToScaleAbout.Y);
-            //    if (imageZoom.M22 < 1 || imageZoom.M11 < 1)   // If scale value of zoom in either dimension is under 1, reset to identity
-            //    {
-            //        imageZoom.SetIdentity();
-            //    }
-            //}
-
-            ////ZoomScale = workPieceImageZoom.M11;
-            //ImageContainer.RenderTransform = new Wpf.MatrixTransform(imageZoom);
+            //ZoomScale = workPieceImageZoom.M11;
+            ImageContainer.RenderTransform = new Wpf.MatrixTransform(imageZoom);
         }
 
         private void ImageContainer_MouseMove(object sender, MouseEventArgs e)
