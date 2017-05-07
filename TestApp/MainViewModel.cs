@@ -119,7 +119,7 @@ namespace TestApp
             geometryList.Add(line);
 
             Geometries = new List<IShape>(geometryList);
-            OnPropertyChanged(() => Geometries);
+            RaisePropertyChanged(nameof(Geometries));
         }
 
         private int GetRandomPixelLocation()

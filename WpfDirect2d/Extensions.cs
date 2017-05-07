@@ -1,13 +1,13 @@
 ﻿using SharpDX;
-using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
 using Wpf = System.Windows.Media;
 using Windows= System.Windows;
+using SharpDX.Mathematics.Interop;
 
 namespace WpfDirect2d
 {
-    public static class Extensions
+    internal static class Extensions
     {
         public static Color ToDirect2dColor(this Wpf.Color wpfColor)
         {
