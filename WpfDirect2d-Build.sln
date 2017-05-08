@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26403.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfDirect2d", "..\WpfDirect2d.csproj", "{24F3BFBA-5305-4773-816A-0ACB2B968992}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfDirect2d", "WpfDirect2d\WpfDirect2d.csproj", "{24F3BFBA-5305-4773-816A-0ACB2B968992}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorGraphicsHelper", "..\..\VectorGraphicsHelper\VectorGraphicsHelper.csproj", "{25B25F53-7409-40DF-89BA-EC33D7B00DE0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorGraphicsHelper", "VectorGraphicsHelper\VectorGraphicsHelper.csproj", "{25B25F53-7409-40DF-89BA-EC33D7B00DE0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
