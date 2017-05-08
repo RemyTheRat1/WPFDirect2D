@@ -7,17 +7,17 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using SharpDX;
 using VectorGraphicsHelper;
-using WpfDirect2d.Shapes;
+using WpfDirect2D.Shapes;
 using Point = System.Windows.Point;
 using Wpf = System.Windows.Media;
 using SharpDX.Direct2D1;
 
-namespace WpfDirect2d
+namespace WpfDirect2D
 {
     /// <summary>
     /// Interaction logic for Direct2dSurface.xaml
     /// </summary>
-    public partial class Direct2dSurface : UserControl
+    public partial class Direct2DSurface : UserControl
     {
         private const double ZOOM_IN_FACTOR = 1.1;
         private const double ZOOM_OUT_FACTOR = 0.9;
@@ -37,11 +37,11 @@ namespace WpfDirect2d
         #region Dependency Properties
 
         public static readonly DependencyProperty ShapesProperty =
-            DependencyProperty.Register("Shapes", typeof(IEnumerable<IShape>), typeof(Direct2dSurface), new PropertyMetadata(new PropertyChangedCallback(OnShapesChanged)));
+            DependencyProperty.Register("Shapes", typeof(IEnumerable<IShape>), typeof(Direct2DSurface), new PropertyMetadata(new PropertyChangedCallback(OnShapesChanged)));
 
         private static void OnShapesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var control = d as Direct2dSurface;
+            var control = d as Direct2DSurface;
             if (control != null && control._isRenderInitialized)
             {
                 control.SyncBrushesWithShapes();
@@ -51,13 +51,13 @@ namespace WpfDirect2d
         }
 
         public static readonly DependencyProperty SelectedShapeProperty =
-            DependencyProperty.Register("SelectedShape", typeof(IShape), typeof(Direct2dSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
+            DependencyProperty.Register("SelectedShape", typeof(IShape), typeof(Direct2DSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
 
         public static readonly DependencyProperty IsMouseWheelZoomEnabledProperty =
-            DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
+            DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(false));
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));        
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));        
 
         public IEnumerable<IShape> Shapes
         {
@@ -85,7 +85,7 @@ namespace WpfDirect2d
 
         #endregion
 
-        public Direct2dSurface()
+        public Direct2DSurface()
         {
             InitializeComponent();
             _createdGeometries = new List<BaseGeometry>();

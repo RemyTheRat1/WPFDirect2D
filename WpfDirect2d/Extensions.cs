@@ -5,7 +5,7 @@ using Wpf = System.Windows.Media;
 using Windows= System.Windows;
 using SharpDX.Mathematics.Interop;
 
-namespace WpfDirect2d
+namespace WpfDirect2D
 {
     internal static class Extensions
     {

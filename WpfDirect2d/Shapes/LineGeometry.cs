@@ -3,7 +3,7 @@ using SharpDX.Direct2D1;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace WpfDirect2d.Shapes
+namespace WpfDirect2D.Shapes
 {
     internal class LineGeometry : BaseGeometry
     {

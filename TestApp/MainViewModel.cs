@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Windows.Input;
 using System.Windows.Media;
 using Prism.Commands;
-using WpfDirect2d.Shapes;
+using WpfDirect2D.Shapes;
 using Prism.Mvvm;
 using System.Windows;
 

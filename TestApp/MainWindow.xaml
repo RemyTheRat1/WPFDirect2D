@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"        
-        xmlns:wpfDirect2D="clr-namespace:WpfDirect2d;assembly=WpfDirect2d"
+        xmlns:wpfDirect2D="clr-namespace:WpfDirect2D;assembly=WpfDirect2D"
         mc:Ignorable="d"
         Title="MainWindow" Height="720" Width="1024">
 
@@ -14,7 +14,7 @@
             <Button MinWidth="80" Content="Apply" Command="{Binding ApplyNumberOfRenderItems}" />
         </StackPanel>
         
-        <wpfDirect2D:Direct2dSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" SelectedShape="{Binding SelectedShape}" IsMouseWheelZoomEnabled="True" IsPanningEnabled="True" />
+        <wpfDirect2D:Direct2DSurface x:Name="Direct2dSurface" Shapes="{Binding Geometries}" SelectedShape="{Binding SelectedShape}" IsMouseWheelZoomEnabled="True" IsPanningEnabled="True" />
     </DockPanel>
 
 </Window>

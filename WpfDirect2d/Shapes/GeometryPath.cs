@@ -1,6 +1,6 @@
 ﻿using SharpDX.Direct2D1;
 
-namespace WpfDirect2d.Shapes
+namespace WpfDirect2D.Shapes
 {
     internal class GeometryPath : BaseGeometry
     {

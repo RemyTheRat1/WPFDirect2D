@@ -1,6 +1,6 @@
 ﻿using System.Windows.Media;
 
-namespace WpfDirect2d.Shapes
+namespace WpfDirect2D.Shapes
 {
     public class VectorShape : IShape
     {

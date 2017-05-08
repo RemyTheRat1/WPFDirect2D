@@ -112,9 +112,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WpfDirect2d\WpfDirect2d.csproj">
+    <ProjectReference Include="..\WpfDirect2d\WpfDirect2D.csproj">
       <Project>{24f3bfba-5305-4773-816a-0acb2b968992}</Project>
-      <Name>WpfDirect2d</Name>
+      <Name>WpfDirect2D</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
