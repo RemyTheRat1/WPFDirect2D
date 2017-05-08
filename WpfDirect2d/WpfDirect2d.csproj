@@ -7,8 +7,8 @@
     <ProjectGuid>{24F3BFBA-5305-4773-816A-0ACB2B968992}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>WpfDirect2d</RootNamespace>
-    <AssemblyName>WpfDirect2d</AssemblyName>
+    <RootNamespace>WpfDirect2D</RootNamespace>
+    <AssemblyName>WpfDirect2D</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>
