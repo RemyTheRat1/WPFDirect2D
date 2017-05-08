@@ -28,6 +28,7 @@ namespace WpfDirect2d
         private Point _mouseMoveStartPoint;
         private bool _isPanning;
         private Factory1 _d2dFactory;
+        private StrokeStyle _lineStrokeStyle;
 
         private bool _renderRequiresInit;
         private readonly List<BaseGeometry> _createdGeometries;
@@ -56,7 +57,7 @@ namespace WpfDirect2d
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2dSurface), new PropertyMetadata(false));
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2dSurface));        
 
         public IEnumerable<IShape> Shapes
         {
@@ -122,6 +123,14 @@ namespace WpfDirect2d
 
                 //request one frame to be rendered            
                 InteropImage.RequestRender();
+
+                //create the default line stroke style
+                _lineStrokeStyle = new StrokeStyle(_d2dFactory, new StrokeStyleProperties
+                {
+                    LineJoin = LineJoin.Round,
+                    StartCap = CapStyle.Round,
+                    EndCap = CapStyle.Round
+                });
 
                 SyncBrushesWithShapes();
                 SyncGeometriesWithShapes();
@@ -259,14 +268,18 @@ namespace WpfDirect2d
 
                         //render the fill color
                         _context.FillGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : fillBrush);
+
+                        //render the geometry
+                        _context.DrawGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth);
                     }
                     else
                     {
+                        //render the line geometry
+                        //lines dont have a set point, it has a series of node points which define the line shape
+                        //translating here isnt needed
                         _context.Transform = Matrix3x2.Identity;
-                    }
-
-                    //render the geometry
-                    _context.DrawGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth);
+                        _context.DrawGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth, _lineStrokeStyle);
+                    }                    
                 }
             }
             _context.EndDraw();
@@ -485,27 +498,48 @@ namespace WpfDirect2d
                     if (pathGeometry != null)
                     {
                         var translation = Matrix3x2.Identity;
-                        var vectorShape = shape as VectorShape;
-                        if (vectorShape != null)
+                        if (pathGeometry is GeometryPath)
                         {
-                            translation = Matrix3x2.Translation(vectorShape.PixelXLocation, vectorShape.PixelYLocation) * Matrix3x2.Scaling(vectorShape.Scaling);
-                        }
-
-                        if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f) || pathGeometry.Geometry.StrokeContainsPoint(testPoint, shape.StrokeWidth))
-                        {
-                            var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
-                            if (previousSelectedShape != null)
+                            var vectorShape = shape as VectorShape;
+                            if (vectorShape != null)
                             {
-                                previousSelectedShape.IsSelected = false;
-                            }
+                                translation = Matrix3x2.Translation(vectorShape.PixelXLocation, vectorShape.PixelYLocation) * Matrix3x2.Scaling(vectorShape.Scaling);
 
-                            shape.IsSelected = true;
-                            selectedShape = shape;
+                                if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
+                                {
+                                    var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
+                                    if (previousSelectedShape != null)
+                                    {
+                                        previousSelectedShape.IsSelected = false;
+                                    }
+
+                                    shape.IsSelected = true;
+                                    selectedShape = shape;
+                                }
+                                else
+                                {
+                                    shape.IsSelected = false;
+                                }
+                            }
                         }
-                        else
+                        else if (pathGeometry is LineGeometry)
                         {
-                            shape.IsSelected = false;
-                        }
+                            if (pathGeometry.Geometry.StrokeContainsPoint(testPoint, shape.StrokeWidth, _lineStrokeStyle, translation, 4f))
+                            {
+                                var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
+                                if (previousSelectedShape != null)
+                                {
+                                    previousSelectedShape.IsSelected = false;
+                                }
+
+                                shape.IsSelected = true;
+                                selectedShape = shape;
+                            }
+                            else
+                            {
+                                shape.IsSelected = false;
+                            }
+                        }                     
                     }
                 }
 
