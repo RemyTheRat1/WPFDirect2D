@@ -64,7 +64,9 @@ namespace VectorGraphicsHelper
             {
                 var point = new Vector2(instruction.Arguments[i], _previousPoint.Y);
                 if (isRelative)
+                {
                     point += new Vector2(_previousPoint.X, 0);
+                }
                 points.Add(point);
                 _previousPoint = points[i];
             }
@@ -85,35 +87,41 @@ namespace VectorGraphicsHelper
             _sink.AddLines(points.ToRawVector2().ToArray());
         }
 
-        void Move(VectorCommand instruction, bool isRelative)
+        private void Move(VectorCommand instruction, bool isRelative)
         {
             if (IsFigureOpen)
+            {
                 Close(FigureEnd.Open);
+            }
 
             var point = new Vector2(instruction.Arguments[0], instruction.Arguments[1]);
             if (isRelative)
+            {
                 point += _startPoint;
+            }
             _startPoint = isRelative ? point + _startPoint : point;
             _previousPoint = _startPoint;
             _sink.BeginFigure(_startPoint, FigureBegin.Filled);
             IsFigureOpen = true;
         }
 
-        void Line(VectorCommand instruction, bool isRelative)
+        private void Line(VectorCommand instruction, bool isRelative)
         {
             var points = new List<Vector2>();
             for (var i = 0; i < instruction.Arguments.Length; i = i + 2)
             {
                 var point = new Vector2(instruction.Arguments[i], instruction.Arguments[i + 1]);
                 if (isRelative)
+                {
                     point += _previousPoint;
+                }
                 points.Add(point);
                 _previousPoint = points[i];
             }
             _sink.AddLines(points.ToRawVector2().ToArray());
         }
 
-        void Arc(VectorCommand instruction, bool isRelative)
+        private void Arc(VectorCommand instruction, bool isRelative)
         {
             for (int i = 0; i < instruction.Arguments.Length; i = i + 6)
             {
@@ -125,7 +133,9 @@ namespace VectorGraphicsHelper
 
                 var p = new Vector2(instruction.Arguments[5], instruction.Arguments[6]);
                 if (isRelative)
+                {
                     p += _previousPoint;
+                }
 
                 var arcSegment = new ArcSegment
                 {
@@ -139,7 +149,7 @@ namespace VectorGraphicsHelper
             }
         }
 
-        void CubicBezierCurve(VectorCommand instruction, bool isRelative)
+        private void CubicBezierCurve(VectorCommand instruction, bool isRelative)
         {
             for (int i = 0; i < instruction.Arguments.Length; i = i + 6)
             {
@@ -164,7 +174,7 @@ namespace VectorGraphicsHelper
             }
         }
 
-        void Close(FigureEnd endType)
+        private void Close(FigureEnd endType)
         {
             IsFigureOpen = false;
             _sink.EndFigure(endType);

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfDirect2D", "WpfDirect2d\WpfDirect2D.csproj", "{24F3BFBA-5305-4773-816A-0ACB2B968992}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorGraphicsHelperTests", "UnitTests\VectorGraphicsHelperTests\VectorGraphicsHelperTests.csproj", "{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{24F3BFBA-5305-4773-816A-0ACB2B968992}.Release|MixedPlatforms.Build.0 = Release|Any CPU
 		{24F3BFBA-5305-4773-816A-0ACB2B968992}.Release|x64.ActiveCfg = Release|x64
 		{24F3BFBA-5305-4773-816A-0ACB2B968992}.Release|x64.Build.0 = Release|x64
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Debug|MixedPlatforms.ActiveCfg = Debug|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Debug|MixedPlatforms.Build.0 = Debug|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Debug|x64.Build.0 = Debug|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Release|MixedPlatforms.ActiveCfg = Release|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Release|MixedPlatforms.Build.0 = Release|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Release|x64.ActiveCfg = Release|Any CPU
+		{07EBD962-CE59-4E72-8BD6-CD4C662A3FBA}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
