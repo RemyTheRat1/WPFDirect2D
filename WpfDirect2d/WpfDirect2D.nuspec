@@ -9,5 +9,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
     <copyright>Copyright 2017</copyright>
+	<projectUrl>https://github.com/ljchristinson/WPFDirect2D</projectUrl>
+	<licenseUrl>https://raw.githubusercontent.com/ljchristinson/WPFDirect2D/master/LICENSE</licenseUrl>
   </metadata>
 </package>
