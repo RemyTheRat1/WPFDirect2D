@@ -124,16 +124,19 @@ namespace WpfDirect2D
                 //request one frame to be rendered            
                 InteropImage.RequestRender();
 
-                //create the default line stroke style
-                _lineStrokeStyle = new StrokeStyle(_d2dFactory, new StrokeStyleProperties
+                if (_d2dFactory != null)
                 {
-                    LineJoin = LineJoin.Round,
-                    StartCap = CapStyle.Round,
-                    EndCap = CapStyle.Round
-                });
+                    //create the default line stroke style
+                    _lineStrokeStyle = new StrokeStyle(_d2dFactory, new StrokeStyleProperties
+                    {
+                        LineJoin = LineJoin.Round,
+                        StartCap = CapStyle.Round,
+                        EndCap = CapStyle.Round
+                    });
 
-                SyncBrushesWithShapes();
-                SyncGeometriesWithShapes();
+                    SyncBrushesWithShapes();
+                    SyncGeometriesWithShapes();
+                }
             }
         }
 

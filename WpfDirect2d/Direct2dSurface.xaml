@@ -5,9 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:directX="clr-namespace:Microsoft.Wpf.Interop.DirectX;assembly=Microsoft.Wpf.Interop.DirectX"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="300" d:DesignWidth="300" ClipToBounds="True">
 
-    <Grid Name="ImageContainer" ClipToBounds="True"
+    <Grid Name="ImageContainer"
           MouseWheel="ImageContainer_MouseWheel" 
           MouseLeftButtonDown="ImageContainer_MouseLeftButtonDown" 
           MouseLeftButtonUp="ImageContainer_MouseLeftButtonUp" 
