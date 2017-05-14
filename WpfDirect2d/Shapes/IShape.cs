@@ -9,14 +9,29 @@ namespace WpfDirect2D.Shapes
         /// </summary>
         bool IsValid { get; }
 
+        /// <summary>
+        /// Fill color to use when rendering this shape
+        /// </summary>
         Color FillColor { get; set; }
 
+        /// <summary>
+        /// Stroke color to use when rendering this shape
+        /// </summary>
         Color StrokeColor { get; set; }
 
+        /// <summary>
+        /// Stroke width
+        /// </summary>
         float StrokeWidth { get; set; }
 
+        /// <summary>
+        /// Is this shape selected
+        /// </summary>
         bool IsSelected { get; set; }
 
+        /// <summary>
+        /// Color to set shape as when it is selected
+        /// </summary>
         Color SelectedColor { get; set; }
     }
 }
