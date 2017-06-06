@@ -37,7 +37,7 @@ namespace WpfDirect2D
         #region Dependency Properties
 
         public static readonly DependencyProperty ShapesProperty =
-            DependencyProperty.Register("Shapes", typeof(IEnumerable<IShape>), typeof(Direct2DSurface), new PropertyMetadata(new PropertyChangedCallback(OnShapesChanged)));
+            DependencyProperty.Register("Shapes", typeof(IEnumerable<IShape>), typeof(Direct2DSurface), new PropertyMetadata(OnShapesChanged));
 
         private static void OnShapesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {

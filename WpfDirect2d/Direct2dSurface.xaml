@@ -12,7 +12,7 @@
           MouseLeftButtonDown="ImageContainer_MouseLeftButtonDown" 
           MouseLeftButtonUp="ImageContainer_MouseLeftButtonUp" 
           MouseMove="ImageContainer_MouseMove">
-        <Image Name="InteropHost" Stretch="Fill" Width="{Binding ActualWidth, ElementName=Direct2d, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=Direct2d, Mode=OneWay}">
+        <Image Name="InteropHost" Stretch="Fill" Width="{Binding ActualWidth, ElementName=Direct2D, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=Direct2D, Mode=OneWay}">
             <Image.Source>
                 <directX:D3D11Image x:Name="InteropImage" />
             </Image.Source>
