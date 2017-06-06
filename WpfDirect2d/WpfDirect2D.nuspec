@@ -13,6 +13,6 @@
 	<licenseUrl>https://raw.githubusercontent.com/ljchristinson/WPFDirect2D/master/LICENSE</licenseUrl>
   </metadata>
   <files>
-    <file src="bin\Release\WpfDirect2D.dll" />    
+    <file src="bin\$configuration$\$id$.dll" target="lib\net45" />    
   </files>
 </package>
