@@ -5,7 +5,7 @@ namespace WpfDirect2D.Shapes
 {
     internal abstract class BaseGeometry : IDisposable
     {
-        private bool disposedValue = false; // To detect redundant calls
+        private bool _disposedValue = false; // To detect redundant calls
 
         protected BaseGeometry(PathGeometry geometry)
         {
@@ -18,7 +18,7 @@ namespace WpfDirect2D.Shapes
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!_disposedValue)
             {
                 if (disposing)
                 {
@@ -28,7 +28,7 @@ namespace WpfDirect2D.Shapes
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
 
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 

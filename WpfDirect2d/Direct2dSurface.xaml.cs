@@ -50,6 +50,10 @@ namespace WpfDirect2D
             control?.RequestRender();
         }
 
+        
+        public static readonly DependencyProperty AxisTransformProperty =
+            DependencyProperty.Register("AxisTransform", typeof(Wpf.ScaleTransform), typeof(Direct2DSurface));
+
         public static readonly DependencyProperty SelectedShapeProperty =
             DependencyProperty.Register("SelectedShape", typeof(IShape), typeof(Direct2DSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
 
@@ -81,6 +85,12 @@ namespace WpfDirect2D
         {
             get { return (bool)GetValue(IsPanningEnabledProperty); }
             set { SetValue(IsPanningEnabledProperty, value); }
+        }
+
+        public Wpf.ScaleTransform AxisTransform
+        {
+            get { return (Wpf.ScaleTransform)GetValue(AxisTransformProperty); }
+            set { SetValue(AxisTransformProperty, value); }
         }
 
         #endregion
@@ -233,7 +243,7 @@ namespace WpfDirect2D
 
         private void Render(IntPtr resourcePointer, bool isNewSurface)
         {
-            if (_context == null || _renderRequiresInit || isNewSurface)
+            if (_context == null || _renderRequiresInit || isNewSurface || _context.IsDisposed)
             {
                 InitializeRenderer(resourcePointer);
             }
@@ -258,16 +268,19 @@ namespace WpfDirect2D
                     var strokeBrush = _brushResources[shape.StrokeColor];
                     var selectedBrush = _brushResources[shape.SelectedColor];
 
-                    //translate the location by the pixel location of the geometry                        
-                    //then scale the geometry by its scaling factor
-                    //then scale the geometry by the zoom scale factor (wpf will do transform for zooming, not needed here)
-                    //then translate by the pan translation amount (wpf will do the transform for panning, not needed here)
+                    //scale the geometry by its scaling factor
+                    //then translate the location by the pixel location of the geometry                                            
+                    //offset the translate by the geometry size to center it at the desired location
 
                     var vectorShape = shape as VectorShape;
                     if (vectorShape != null)
                     {
-                        _context.Transform = Matrix3x2.Translation(vectorShape.PixelXLocation, vectorShape.PixelYLocation)
-                            * Matrix3x2.Scaling(vectorShape.Scaling);
+                        var scaleTransform = Matrix3x2.Scaling(vectorShape.Scaling);
+                        var geometryBounds = pathGeometry.Geometry.GetBounds(scaleTransform);
+                        float centerScalingOffset = vectorShape.Scaling * 4;
+                        float xTranslate = vectorShape.PixelXLocation - (geometryBounds.Right - geometryBounds.Left) + centerScalingOffset;
+                        float yTranslate = vectorShape.PixelYLocation - (geometryBounds.Bottom - geometryBounds.Top) + centerScalingOffset;
+                        _context.Transform = scaleTransform * Matrix3x2.Translation(xTranslate, yTranslate);
 
                         //render the fill color
                         _context.FillGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : fillBrush);

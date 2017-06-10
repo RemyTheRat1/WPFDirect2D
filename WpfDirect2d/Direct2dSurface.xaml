@@ -12,10 +12,13 @@
           MouseLeftButtonDown="ImageContainer_MouseLeftButtonDown" 
           MouseLeftButtonUp="ImageContainer_MouseLeftButtonUp" 
           MouseMove="ImageContainer_MouseMove">
-        <Image Name="InteropHost" Stretch="Fill" Width="{Binding ActualWidth, ElementName=Direct2D, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=Direct2D, Mode=OneWay}">
+        <Image Name="InteropHost" Stretch="Fill" Width="{Binding ActualWidth, ElementName=Direct2D, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=Direct2D, Mode=OneWay}" LayoutTransform="{Binding ElementName=Direct2D, Path=AxisTransform}">
             <Image.Source>
                 <directX:D3D11Image x:Name="InteropImage" />
             </Image.Source>
+            <!--<Image.LayoutTransform>
+                <ScaleTransform ScaleX="1" ScaleY="-1" CenterX=".5" CenterY=".5" />
+            </Image.LayoutTransform>-->
         </Image>
     </Grid>
 </UserControl>
