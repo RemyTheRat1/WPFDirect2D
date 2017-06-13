@@ -50,7 +50,7 @@ namespace WpfDirect2D
             control?.RequestRender();
         }
 
-        
+
         public static readonly DependencyProperty AxisTransformProperty =
             DependencyProperty.Register("AxisTransform", typeof(Wpf.ScaleTransform), typeof(Direct2DSurface));
 
@@ -61,7 +61,7 @@ namespace WpfDirect2D
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(false));
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));        
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));
 
         public IEnumerable<IShape> Shapes
         {
@@ -112,6 +112,11 @@ namespace WpfDirect2D
         public void RequestRender()
         {
             InteropImage.RequestRender();
+        }
+
+        protected override Wpf.HitTestResult HitTestCore(Wpf.PointHitTestParameters hitTestParameters)
+        {
+            return new Wpf.PointHitTestResult(this, hitTestParameters.HitPoint);
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -295,7 +300,7 @@ namespace WpfDirect2D
                         //translating here isnt needed
                         _context.Transform = Matrix3x2.Identity;
                         _context.DrawGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth, _lineStrokeStyle);
-                    }                    
+                    }
                 }
             }
             _context.EndDraw();
@@ -496,11 +501,6 @@ namespace WpfDirect2D
 
         private void ImageContainer_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (!IsPanningEnabled)
-            {
-                return;
-            }
-
             if (!_isPanning)
             {
                 var mousePosition = e.GetPosition(InteropHost);
@@ -519,7 +519,12 @@ namespace WpfDirect2D
                             var vectorShape = shape as VectorShape;
                             if (vectorShape != null)
                             {
-                                translation = Matrix3x2.Translation(vectorShape.PixelXLocation, vectorShape.PixelYLocation) * Matrix3x2.Scaling(vectorShape.Scaling);
+                                var scaleTransform = Matrix3x2.Scaling(vectorShape.Scaling);
+                                var geometryBounds = pathGeometry.Geometry.GetBounds(scaleTransform);
+                                float centerScalingOffset = vectorShape.Scaling * 4;
+                                float xTranslate = vectorShape.PixelXLocation - (geometryBounds.Right - geometryBounds.Left) + centerScalingOffset;
+                                float yTranslate = vectorShape.PixelYLocation - (geometryBounds.Bottom - geometryBounds.Top) + centerScalingOffset;
+                                translation = scaleTransform * Matrix3x2.Translation(xTranslate, yTranslate);                                
 
                                 if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
                                 {
@@ -555,7 +560,7 @@ namespace WpfDirect2D
                             {
                                 shape.IsSelected = false;
                             }
-                        }                     
+                        }
                     }
                 }
 
