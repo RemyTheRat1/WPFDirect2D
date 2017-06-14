@@ -1,5 +1,7 @@
 ﻿using SharpDX.Direct2D1;
 using System;
+using SharpDX;
+using SharpDX.Mathematics.Interop;
 
 namespace WpfDirect2D.Shapes
 {
@@ -16,6 +18,37 @@ namespace WpfDirect2D.Shapes
 
         public abstract bool IsGeometryForShape(IShape shape);
 
+        public RawRectangleF GetBounds(Matrix3x2 scaleTransform)
+        {
+            return Geometry.GetBounds(scaleTransform);
+        }
+
+        public Matrix3x2 GetRenderTransform(float scaleFactor, float xLocation, float yLocation, ShapeRenderOrigin renderOrigin)
+        {
+            if (renderOrigin == ShapeRenderOrigin.Center)
+            {
+                return GetCenterRenderTransform(scaleFactor, xLocation, yLocation);
+            }
+
+            return GetTopLeftRenderTransform(scaleFactor, xLocation, yLocation);
+        }
+
+        private Matrix3x2 GetCenterRenderTransform(float scaleFactor, float xLocation, float yLocation)
+        {
+            var scaleTransform = Matrix3x2.Scaling(scaleFactor);
+            var geometryBounds = GetBounds(scaleTransform);
+            float centerScalingOffset = scaleFactor * 4;
+            float xTranslate = xLocation - (geometryBounds.Right - geometryBounds.Left) + centerScalingOffset;
+            float yTranslate = yLocation - (geometryBounds.Bottom - geometryBounds.Top) + centerScalingOffset;
+
+            return scaleTransform * Matrix3x2.Translation(xTranslate, yTranslate);
+        }
+
+        private Matrix3x2 GetTopLeftRenderTransform(float scaleFactor, float xLocation, float yLocation)
+        {
+            return Matrix3x2.Scaling(scaleFactor) * Matrix3x2.Translation(xLocation, yLocation);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposedValue)
@@ -24,9 +57,6 @@ namespace WpfDirect2D.Shapes
                 {
                     Geometry?.Dispose();
                 }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
 
                 _disposedValue = true;
             }

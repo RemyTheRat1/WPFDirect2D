@@ -17,11 +17,12 @@ namespace WpfDirect2D
     /// <summary>
     /// Interaction logic for Direct2dSurface.xaml
     /// </summary>
-    public partial class Direct2DSurface : UserControl
+    public partial class Direct2DSurface : UserControl, IDisposable
     {
         private const double ZOOM_IN_FACTOR = 1.1;
         private const double ZOOM_OUT_FACTOR = 0.9;
 
+        private bool _disposedValue = false; // To detect redundant calls
         private bool _isRenderInitialized;
         private DeviceContext1 _context;
 
@@ -53,6 +54,9 @@ namespace WpfDirect2D
         
         public static readonly DependencyProperty AxisTransformProperty =
             DependencyProperty.Register("AxisTransform", typeof(Wpf.ScaleTransform), typeof(Direct2DSurface));
+
+        public static readonly DependencyProperty RenderOriginProperty =
+            DependencyProperty.Register("RenderOrigin", typeof(ShapeRenderOrigin), typeof(Direct2DSurface), new PropertyMetadata(ShapeRenderOrigin.Center));        
 
         public static readonly DependencyProperty SelectedShapeProperty =
             DependencyProperty.Register("SelectedShape", typeof(IShape), typeof(Direct2DSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
@@ -93,6 +97,15 @@ namespace WpfDirect2D
             set { SetValue(AxisTransformProperty, value); }
         }
 
+        /// <summary>
+        /// What placement to use when rendering Shapes, center or top left corner
+        /// </summary>
+        public ShapeRenderOrigin RenderOrigin
+        {
+            get { return (ShapeRenderOrigin)GetValue(RenderOriginProperty); }
+            set { SetValue(RenderOriginProperty, value); }
+        }
+
         #endregion
 
         public Direct2DSurface()
@@ -101,13 +114,12 @@ namespace WpfDirect2D
             _createdGeometries = new List<BaseGeometry>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
 
-            Loaded += OnLoaded;
-            Unloaded += OnUnloaded;
+            Loaded += OnLoaded;            
             SizeChanged += OnSizeChanged;
         }
 
         /// <summary>
-        /// Request a render of the geometries defined in the Shapes DP
+        /// Request a render of the geometries defined in the Shapes DP.
         /// </summary>
         public void RequestRender()
         {
@@ -150,22 +162,37 @@ namespace WpfDirect2D
             }
         }
 
-        private void OnUnloaded(object sender, RoutedEventArgs e)
+        protected virtual void Dispose(bool disposing)
         {
-            _context.Dispose();
-            foreach (var geometry in _createdGeometries)
+            if (_disposedValue) return;
+
+            if (disposing)
             {
-                geometry.Dispose();
-            }
-            foreach (var brush in _brushResources)
-            {
-                brush.Value.Dispose();
+                _context.Dispose();
+                foreach (var geometry in _createdGeometries)
+                {
+                    geometry.Dispose();
+                }
+                foreach (var brush in _brushResources)
+                {
+                    brush.Value.Dispose();
+                }
+
+                _lineStrokeStyle.Dispose();
+                _createdGeometries.Clear();
+                _brushResources.Clear();
+
+                _isRenderInitialized = false;
             }
 
-            _createdGeometries.Clear();
-            _brushResources.Clear();
+            _disposedValue = true;
+        }
 
-            _isRenderInitialized = false;
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
         }
 
         private void InitializeRenderer(IntPtr handle)
@@ -275,12 +302,7 @@ namespace WpfDirect2D
                     var vectorShape = shape as VectorShape;
                     if (vectorShape != null)
                     {
-                        var scaleTransform = Matrix3x2.Scaling(vectorShape.Scaling);
-                        var geometryBounds = pathGeometry.Geometry.GetBounds(scaleTransform);
-                        float centerScalingOffset = vectorShape.Scaling * 4;
-                        float xTranslate = vectorShape.PixelXLocation - (geometryBounds.Right - geometryBounds.Left) + centerScalingOffset;
-                        float yTranslate = vectorShape.PixelYLocation - (geometryBounds.Bottom - geometryBounds.Top) + centerScalingOffset;
-                        _context.Transform = scaleTransform * Matrix3x2.Translation(xTranslate, yTranslate);
+                        _context.Transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, RenderOrigin);
 
                         //render the fill color
                         _context.FillGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : fillBrush);
@@ -303,7 +325,7 @@ namespace WpfDirect2D
 
         private void SyncGeometriesWithShapes()
         {
-            if (_context == null || _context.Factory == null || Shapes == null)
+            if (_context?.Factory == null || Shapes == null)
             {
                 return;
             }
@@ -373,7 +395,7 @@ namespace WpfDirect2D
 
         private void SyncBrushesWithShapes()
         {
-            if (_context == null || _context.Factory == null || Shapes == null)
+            if (_context?.Factory == null || Shapes == null)
             {
                 return;
             }
@@ -457,8 +479,7 @@ namespace WpfDirect2D
                     imageZoom.SetIdentity();
                 }
             }
-
-            //ZoomScale = workPieceImageZoom.M11;
+            
             ImageContainer.RenderTransform = new Wpf.MatrixTransform(imageZoom);
         }
 
@@ -519,7 +540,7 @@ namespace WpfDirect2D
                             var vectorShape = shape as VectorShape;
                             if (vectorShape != null)
                             {
-                                translation = Matrix3x2.Translation(vectorShape.PixelXLocation, vectorShape.PixelYLocation) * Matrix3x2.Scaling(vectorShape.Scaling);
+                                translation = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, RenderOrigin);
 
                                 if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
                                 {

@@ -16,9 +16,6 @@
             <Image.Source>
                 <directX:D3D11Image x:Name="InteropImage" />
             </Image.Source>
-            <!--<Image.LayoutTransform>
-                <ScaleTransform ScaleX="1" ScaleY="-1" CenterX=".5" CenterY=".5" />
-            </Image.LayoutTransform>-->
         </Image>
     </Grid>
 </UserControl>

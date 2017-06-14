@@ -92,6 +92,7 @@
     <Compile Include="Direct2DSurface.xaml.cs">
       <DependentUpon>Direct2DSurface.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Enums.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Shapes\BaseGeometry.cs" />
