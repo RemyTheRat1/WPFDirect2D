@@ -5,14 +5,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:directX="clr-namespace:Microsoft.Wpf.Interop.DirectX;assembly=Microsoft.Wpf.Interop.DirectX"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300" ClipToBounds="True">
+             d:DesignHeight="300" d:DesignWidth="300" ClipToBounds="True"
+             MouseWheel="ImageContainer_MouseWheel" 
+             MouseLeftButtonDown="ImageContainer_MouseLeftButtonDown" 
+             MouseLeftButtonUp="ImageContainer_MouseLeftButtonUp" 
+             MouseMove="ImageContainer_MouseMove">
 
-    <Grid Name="ImageContainer"
-          MouseWheel="ImageContainer_MouseWheel" 
-          MouseLeftButtonDown="ImageContainer_MouseLeftButtonDown" 
-          MouseLeftButtonUp="ImageContainer_MouseLeftButtonUp" 
-          MouseMove="ImageContainer_MouseMove">
-        <Image Name="InteropHost" Stretch="Fill" Width="{Binding ActualWidth, ElementName=Direct2D, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=Direct2D, Mode=OneWay}" LayoutTransform="{Binding ElementName=Direct2D, Path=AxisTransform}">
+    <Grid Name="ImageContainer">
+        <Image Name="InteropHost" Stretch="Fill" Width="{Binding ActualWidth, ElementName=Direct2D, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=Direct2D, Mode=OneWay}"
+               LayoutTransform="{Binding ElementName=Direct2D, Path=AxisTransform}" IsHitTestVisible="False">
             <Image.Source>
                 <directX:D3D11Image x:Name="InteropImage" />
             </Image.Source>
