@@ -6,10 +6,10 @@
              xmlns:directX="clr-namespace:Microsoft.Wpf.Interop.DirectX;assembly=Microsoft.Wpf.Interop.DirectX"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300" ClipToBounds="True"
-             MouseWheel="ImageContainer_MouseWheel" 
-             MouseLeftButtonDown="ImageContainer_MouseLeftButtonDown" 
-             MouseLeftButtonUp="ImageContainer_MouseLeftButtonUp" 
-             MouseMove="ImageContainer_MouseMove">
+             PreviewMouseWheel="ImageContainer_MouseWheel" 
+             PreviewMouseLeftButtonDown="ImageContainer_MouseLeftButtonDown" 
+             PreviewMouseLeftButtonUp="ImageContainer_MouseLeftButtonUp" 
+             PreviewMouseMove="ImageContainer_MouseMove">
 
     <Grid Name="ImageContainer">
         <Image Name="InteropHost" Stretch="Fill" Width="{Binding ActualWidth, ElementName=Direct2D, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=Direct2D, Mode=OneWay}"

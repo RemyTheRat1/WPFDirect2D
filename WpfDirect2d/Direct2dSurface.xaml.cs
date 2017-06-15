@@ -522,7 +522,7 @@ namespace WpfDirect2D
 
         private void ImageContainer_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (!_isPanning)
+            if (!_isPanning && Shapes != null)
             {
                 var mousePosition = e.GetPosition(InteropHost);
                 var testPoint = new Vector2((float)mousePosition.X, (float)mousePosition.Y);
