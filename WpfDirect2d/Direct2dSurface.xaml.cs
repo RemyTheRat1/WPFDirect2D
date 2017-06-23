@@ -408,26 +408,15 @@ namespace WpfDirect2D
             //add any missing brushes
             foreach (var instance in Shapes)
             {
-                if (_brushResources.All(b => b.Key != instance.FillColor))
+                foreach (var color in instance.GetColorsToCache())
                 {
-                    //color missing, add it
-                    var solidBrush = new SolidColorBrush(_context, instance.FillColor.ToDirect2dColor());
-                    _brushResources.Add(instance.FillColor, solidBrush);
-                }
-
-                if (_brushResources.All(b => b.Key != instance.StrokeColor))
-                {
-                    //color missing, add it
-                    var solidBrush = new SolidColorBrush(_context, instance.StrokeColor.ToDirect2dColor());
-                    _brushResources.Add(instance.StrokeColor, solidBrush);
-                }
-
-                if (_brushResources.All(b => b.Key != instance.SelectedColor))
-                {
-                    //color missing, add it
-                    var solidBrush = new SolidColorBrush(_context, instance.SelectedColor.ToDirect2dColor());
-                    _brushResources.Add(instance.SelectedColor, solidBrush);
-                }
+                    if (_brushResources.All(b => b.Key != color))
+                    {
+                        //color missing, add it
+                        var solidBrush = new SolidColorBrush(_context, color.ToDirect2dColor());
+                        _brushResources.Add(color, solidBrush);
+                    }
+                }                
             }
 
             var colorsToDelete = new List<Wpf.Color>();
@@ -435,7 +424,7 @@ namespace WpfDirect2D
             //delete any brushes not in use anymore
             foreach (var color in _brushResources.Keys)
             {
-                bool colorFound = Shapes.Any(instance => instance.FillColor == color || instance.StrokeColor == color || instance.SelectedColor == color);
+                bool colorFound = Shapes.Any(instance => instance.GetColorsToCache().Contains(color));                
                 if (!colorFound)
                 {
                     colorsToDelete.Add(color);

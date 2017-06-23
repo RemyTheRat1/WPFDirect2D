@@ -1,9 +1,15 @@
-﻿using System.Windows.Media;
+﻿using System.Collections.Generic;
+using System.Windows.Media;
 
 namespace WpfDirect2D.Shapes
 {
     public class VectorShape : IShape
     {
+        public VectorShape()
+        {
+            BrushColorsToCache = new List<Color>();
+        }
+
         public bool IsValid => !string.IsNullOrEmpty(GeometryPath);
 
         /// <summary>
@@ -26,5 +32,28 @@ namespace WpfDirect2D.Shapes
         public bool IsSelected { get; set; }
 
         public Color SelectedColor { get; set; }
+
+        public List<Color> BrushColorsToCache { get; }
+
+        public List<Color> GetColorsToCache()
+        {
+            //make sure the stoke, fill, and selected colors are in the list
+            if (!BrushColorsToCache.Contains(FillColor))
+            {
+                BrushColorsToCache.Add(FillColor);
+            }
+
+            if (!BrushColorsToCache.Contains(StrokeColor))
+            {
+                BrushColorsToCache.Add(StrokeColor);
+            }
+
+            if (!BrushColorsToCache.Contains(SelectedColor))
+            {
+                BrushColorsToCache.Add(SelectedColor);
+            }
+
+            return BrushColorsToCache;
+        }
     }
 }

@@ -10,6 +10,7 @@ namespace WpfDirect2D.Shapes
         public LineShape()
         {
             LineNodes = new List<Point>();
+            BrushColorsToCache = new List<Color>();
         }
 
         public bool IsValid => LineNodes.Count >= 2;
@@ -28,6 +29,8 @@ namespace WpfDirect2D.Shapes
 
         public bool IsLineClosed { get; set; }
 
+        public List<Color> BrushColorsToCache { get; }
+
         public Point GetStartingPoint()
         {
             return LineNodes.FirstOrDefault();
@@ -45,6 +48,27 @@ namespace WpfDirect2D.Shapes
             }
 
             return LineNodes.Skip(1).ToList();
+        }
+
+        public List<Color> GetColorsToCache()
+        {
+            //make sure the stoke, fill, and selected colors are in the list
+            if (!BrushColorsToCache.Contains(FillColor))
+            {
+                BrushColorsToCache.Add(FillColor);
+            }
+
+            if (!BrushColorsToCache.Contains(StrokeColor))
+            {
+                BrushColorsToCache.Add(StrokeColor);
+            }
+
+            if (!BrushColorsToCache.Contains(SelectedColor))
+            {
+                BrushColorsToCache.Add(SelectedColor);
+            }
+
+            return BrushColorsToCache;
         }
     }
 }

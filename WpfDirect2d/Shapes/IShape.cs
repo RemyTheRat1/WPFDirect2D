@@ -1,4 +1,5 @@
-﻿using System.Windows.Media;
+﻿using System.Collections.Generic;
+using System.Windows.Media;
 
 namespace WpfDirect2D.Shapes
 {
@@ -33,5 +34,16 @@ namespace WpfDirect2D.Shapes
         /// Color to set shape as when it is selected
         /// </summary>
         Color SelectedColor { get; set; }
+
+        /// <summary>
+        /// Additional colors to cache
+        /// </summary>
+        List<Color> BrushColorsToCache { get; }
+
+        /// <summary>
+        /// Get a list of all the colors this shape could use
+        /// </summary>
+        /// <returns></returns>
+        List<Color> GetColorsToCache();
     }
 }
