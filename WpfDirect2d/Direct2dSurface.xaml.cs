@@ -307,7 +307,7 @@ namespace WpfDirect2D
                     var vectorShape = shape as VectorShape;
                     if (vectorShape != null)
                     {
-                        _context.Transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, RenderOrigin);
+                        _context.Transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
 
                         //render the fill color
                         _context.FillGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : fillBrush);
@@ -529,7 +529,7 @@ namespace WpfDirect2D
                             var vectorShape = shape as VectorShape;
                             if (vectorShape != null)
                             {
-                                translation = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, RenderOrigin);
+                                translation = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
 
                                 if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
                                 {

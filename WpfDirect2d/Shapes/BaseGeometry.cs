@@ -23,17 +23,17 @@ namespace WpfDirect2D.Shapes
             return Geometry.GetBounds(scaleTransform);
         }
 
-        public Matrix3x2 GetRenderTransform(float scaleFactor, float xLocation, float yLocation, ShapeRenderOrigin renderOrigin)
+        public Matrix3x2 GetRenderTransform(float scaleFactor, float xLocation, float yLocation, float rotation, ShapeRenderOrigin renderOrigin)
         {
             if (renderOrigin == ShapeRenderOrigin.Center)
             {
-                return GetCenterRenderTransform(scaleFactor, xLocation, yLocation);
+                return GetCenterRenderTransform(scaleFactor, xLocation, yLocation, rotation);
             }
 
-            return GetTopLeftRenderTransform(scaleFactor, xLocation, yLocation);
+            return GetTopLeftRenderTransform(scaleFactor, xLocation, yLocation, rotation);
         }
 
-        private Matrix3x2 GetCenterRenderTransform(float scaleFactor, float xLocation, float yLocation)
+        private Matrix3x2 GetCenterRenderTransform(float scaleFactor, float xLocation, float yLocation, float rotation)
         {
             var scaleTransform = Matrix3x2.Scaling(scaleFactor);
             var geometryBounds = GetBounds(scaleTransform);
@@ -41,12 +41,12 @@ namespace WpfDirect2D.Shapes
             float xTranslate = xLocation - (geometryBounds.Right - geometryBounds.Left) + centerScalingOffset;
             float yTranslate = yLocation - (geometryBounds.Bottom - geometryBounds.Top) + centerScalingOffset;
 
-            return scaleTransform * Matrix3x2.Translation(xTranslate, yTranslate);
+            return scaleTransform * Matrix3x2.Translation(xTranslate, yTranslate) * Matrix3x2.Rotation(rotation);
         }
 
-        private Matrix3x2 GetTopLeftRenderTransform(float scaleFactor, float xLocation, float yLocation)
+        private Matrix3x2 GetTopLeftRenderTransform(float scaleFactor, float xLocation, float yLocation, float rotation)
         {
-            return Matrix3x2.Scaling(scaleFactor) * Matrix3x2.Translation(xLocation, yLocation);
+            return Matrix3x2.Scaling(scaleFactor) * Matrix3x2.Translation(xLocation, yLocation) * Matrix3x2.Rotation(rotation);
         }
 
         protected virtual void Dispose(bool disposing)

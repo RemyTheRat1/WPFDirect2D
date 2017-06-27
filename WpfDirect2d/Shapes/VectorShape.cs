@@ -21,6 +21,8 @@ namespace WpfDirect2D.Shapes
 
         public float PixelYLocation { get; set; }
 
+        public float Rotation { get; set; }
+
         public float Scaling { get; set; }
 
         public Color FillColor { get; set; }
@@ -37,7 +39,7 @@ namespace WpfDirect2D.Shapes
 
         public List<Color> GetColorsToCache()
         {
-            //make sure the stoke, fill, and selected colors are in the list
+            //make sure the stroke, fill, and selected colors are in the list
             if (!BrushColorsToCache.Contains(FillColor))
             {
                 BrushColorsToCache.Add(FillColor);
