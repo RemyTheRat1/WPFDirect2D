@@ -41,12 +41,12 @@ namespace WpfDirect2D.Shapes
             float xTranslate = xLocation - (geometryBounds.Right - geometryBounds.Left) + centerScalingOffset;
             float yTranslate = yLocation - (geometryBounds.Bottom - geometryBounds.Top) + centerScalingOffset;
 
-            return scaleTransform * Matrix3x2.Translation(xTranslate, yTranslate) * Matrix3x2.Rotation(rotation);
+            return scaleTransform * Matrix3x2.Rotation(rotation) * Matrix3x2.Translation(xTranslate, yTranslate);
         }
 
         private Matrix3x2 GetTopLeftRenderTransform(float scaleFactor, float xLocation, float yLocation, float rotation)
         {
-            return Matrix3x2.Scaling(scaleFactor) * Matrix3x2.Translation(xLocation, yLocation) * Matrix3x2.Rotation(rotation);
+            return Matrix3x2.Scaling(scaleFactor) * Matrix3x2.Rotation(rotation) * Matrix3x2.Translation(xLocation, yLocation);
         }
 
         protected virtual void Dispose(bool disposing)
