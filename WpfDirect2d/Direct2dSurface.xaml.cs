@@ -271,6 +271,10 @@ namespace WpfDirect2D
 
             // notify the D3D11Image and the DxRendering component of the pixel size desired for the DirectX rendering.
             InteropImage.SetPixelSize(surfWidth, surfHeight);
+
+            //make sure the resources are created
+            SyncGeometriesWithShapes();
+            SyncBrushesWithShapes();
         }
 
         private void Render(IntPtr resourcePointer, bool isNewSurface)
@@ -307,13 +311,14 @@ namespace WpfDirect2D
                     var vectorShape = shape as VectorShape;
                     if (vectorShape != null)
                     {
-                        _context.Transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
+                        var transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
+                        var transformedGeometry = new TransformedGeometry(_d2dFactory, pathGeometry.Geometry, transform);
 
                         //render the fill color
-                        _context.FillGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : fillBrush);
+                        _context.FillGeometry(transformedGeometry, shape.IsSelected ? selectedBrush : fillBrush);
 
                         //render the geometry
-                        _context.DrawGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth);
+                        _context.DrawGeometry(transformedGeometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth);
                     }
                     else
                     {
