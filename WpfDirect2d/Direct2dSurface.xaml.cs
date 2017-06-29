@@ -65,7 +65,10 @@ namespace WpfDirect2D
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(false));
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));        
+        
+        public static readonly DependencyProperty UseRealizationsProperty =
+            DependencyProperty.Register("UseRealizations", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(true));
 
         public IEnumerable<IShape> Shapes
         {
@@ -104,6 +107,12 @@ namespace WpfDirect2D
         {
             get { return (ShapeRenderOrigin)GetValue(RenderOriginProperty); }
             set { SetValue(RenderOriginProperty, value); }
+        }
+
+        public bool UseRealizations
+        {
+            get { return (bool)GetValue(UseRealizationsProperty); }
+            set { SetValue(UseRealizationsProperty, value); }
         }
 
         #endregion
@@ -232,11 +241,11 @@ namespace WpfDirect2D
                     MinLevel = FeatureLevel.Level_DEFAULT,
                     PixelFormat = new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied),
                     Type = RenderTargetType.Default,
-                    Usage = RenderTargetUsage.None
+                    Usage = RenderTargetUsage.None                    
                 };
 
                 var renderTarget = new RenderTarget(_d2dFactory, surface, properties);
-                _context = renderTarget.QueryInterface<DeviceContext1>();
+                _context = renderTarget.QueryInterface<DeviceContext1>();                
             }
 
             comObject.Dispose();
@@ -304,21 +313,30 @@ namespace WpfDirect2D
                     var strokeBrush = _brushResources[shape.StrokeColor];
                     var selectedBrush = _brushResources[shape.SelectedColor];
 
-                    //scale the geometry by its scaling factor
-                    //then translate the location by the pixel location of the geometry                                            
-                    //offset the translate by the geometry size to center it at the desired location
-
                     var vectorShape = shape as VectorShape;
                     if (vectorShape != null)
-                    {
+                    {                        
                         var transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
-                        var transformedGeometry = new TransformedGeometry(_d2dFactory, pathGeometry.Geometry, transform);
+                        if (UseRealizations)
+                        {
+                            _context.Transform = transform;
+                            
+                            //render the fill realization
+                            _context.DrawGeometryRealization(pathGeometry.FilledRealization, shape.IsSelected ? selectedBrush : fillBrush);
+                            
+                            //render the stroke realization
+                            _context.DrawGeometryRealization(pathGeometry.StrokedRealization, strokeBrush);
+                        }
+                        else
+                        {
+                            var transformedGeometry = new TransformedGeometry(_d2dFactory, pathGeometry.Geometry, transform);
 
-                        //render the fill color
-                        _context.FillGeometry(transformedGeometry, shape.IsSelected ? selectedBrush : fillBrush);
+                            //render the fill color
+                            _context.FillGeometry(transformedGeometry, shape.IsSelected ? selectedBrush : fillBrush);
 
-                        //render the geometry
-                        _context.DrawGeometry(transformedGeometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth);
+                            //render the geometry
+                            _context.DrawGeometry(transformedGeometry, strokeBrush, shape.StrokeWidth);
+                        }
                     }
                     else
                     {
@@ -344,7 +362,7 @@ namespace WpfDirect2D
 
             foreach (var shape in Shapes)
             {
-                if (_createdGeometries.All(g => !g.IsGeometryForShape(shape)))
+                if (_createdGeometries.All(g => !g.IsGeometryForShape(shape)) && geometriesToAdd.All(g => !g.IsGeometryForShape(shape)))
                 {
                     //vector not created, make it here and store for later
                     var geometry = CreateGeometry(shape);
@@ -382,7 +400,12 @@ namespace WpfDirect2D
                 var commands = VectorGraphicParser.ParsePathData(vectorShape.GeometryPath);
                 helper.Execute(commands);
                 sink.Close();
-                return new GeometryPath(vectorShape.GeometryPath, geometry);
+                var shapeGeometry = new GeometryPath(vectorShape.GeometryPath, geometry);
+                if (UseRealizations)
+                {
+                    shapeGeometry.CreateRealizations(_context);
+                }
+                return shapeGeometry;
             }
 
             var lineShape = shape as LineShape;

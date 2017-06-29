@@ -16,7 +16,13 @@ namespace WpfDirect2D.Shapes
 
         public PathGeometry Geometry { get; protected set; }
 
+        public GeometryRealization FilledRealization { get; protected set; }
+
+        public GeometryRealization StrokedRealization { get; protected set; }
+
         public abstract bool IsGeometryForShape(IShape shape);
+
+        public abstract void CreateRealizations(DeviceContext1 deviceContext);
 
         public RawRectangleF GetBounds(Matrix3x2 scaleTransform)
         {
@@ -56,6 +62,8 @@ namespace WpfDirect2D.Shapes
                 if (disposing)
                 {
                     Geometry?.Dispose();
+                    FilledRealization?.Dispose();
+                    StrokedRealization?.Dispose();
                 }
 
                 _disposedValue = true;

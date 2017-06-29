@@ -33,5 +33,11 @@ namespace WpfDirect2D.Shapes
 
             return true;
         }
+
+        public override void CreateRealizations(DeviceContext1 deviceContext)
+        {
+            //lines do not support realizations at this time
+            throw new NotImplementedException();
+        }
     }
 }
