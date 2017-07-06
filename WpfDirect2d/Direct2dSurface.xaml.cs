@@ -34,6 +34,7 @@ namespace WpfDirect2D
         private bool _renderRequiresInit;
         private readonly List<BaseGeometry> _createdGeometries;
         private readonly Dictionary<Wpf.Color, SolidColorBrush> _brushResources;
+        private SpatialHash _spatialIndex;
 
         #region Dependency Properties
 
@@ -56,7 +57,7 @@ namespace WpfDirect2D
             DependencyProperty.Register("AxisTransform", typeof(Wpf.ScaleTransform), typeof(Direct2DSurface));
 
         public static readonly DependencyProperty RenderOriginProperty =
-            DependencyProperty.Register("RenderOrigin", typeof(ShapeRenderOrigin), typeof(Direct2DSurface), new PropertyMetadata(ShapeRenderOrigin.Center));        
+            DependencyProperty.Register("RenderOrigin", typeof(ShapeRenderOrigin), typeof(Direct2DSurface), new PropertyMetadata(ShapeRenderOrigin.Center));
 
         public static readonly DependencyProperty SelectedShapeProperty =
             DependencyProperty.Register("SelectedShape", typeof(IShape), typeof(Direct2DSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
@@ -65,8 +66,8 @@ namespace WpfDirect2D
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(false));
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));        
-        
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));
+
         public static readonly DependencyProperty UseRealizationsProperty =
             DependencyProperty.Register("UseRealizations", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(true));
 
@@ -123,7 +124,7 @@ namespace WpfDirect2D
             _createdGeometries = new List<BaseGeometry>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
 
-            Loaded += OnLoaded;            
+            Loaded += OnLoaded;
             SizeChanged += OnSizeChanged;
         }
 
@@ -241,11 +242,11 @@ namespace WpfDirect2D
                     MinLevel = FeatureLevel.Level_DEFAULT,
                     PixelFormat = new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied),
                     Type = RenderTargetType.Default,
-                    Usage = RenderTargetUsage.None                    
+                    Usage = RenderTargetUsage.None
                 };
 
                 var renderTarget = new RenderTarget(_d2dFactory, surface, properties);
-                _context = renderTarget.QueryInterface<DeviceContext1>();                
+                _context = renderTarget.QueryInterface<DeviceContext1>();
             }
 
             comObject.Dispose();
@@ -280,6 +281,7 @@ namespace WpfDirect2D
 
             // notify the D3D11Image and the DxRendering component of the pixel size desired for the DirectX rendering.
             InteropImage.SetPixelSize(surfWidth, surfHeight);
+            _spatialIndex = new SpatialHash(surfWidth, surfHeight, 25);
 
             //make sure the resources are created
             SyncGeometriesWithShapes();
@@ -300,6 +302,7 @@ namespace WpfDirect2D
 
             _context.BeginDraw();
             _context.Clear(Color.Transparent);
+            _spatialIndex.ClearBuckets();
 
             //render the geometries
             foreach (var shape in Shapes)
@@ -315,15 +318,17 @@ namespace WpfDirect2D
 
                     var vectorShape = shape as VectorShape;
                     if (vectorShape != null)
-                    {                        
+                    {
                         var transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
+                        _spatialIndex.RegisterItem(vectorShape, pathGeometry.GetBounds(Matrix3x2.Scaling(vectorShape.Scaling)));
+
                         if (UseRealizations)
                         {
                             _context.Transform = transform;
-                            
+
                             //render the fill realization
                             _context.DrawGeometryRealization(pathGeometry.FilledRealization, shape.IsSelected ? selectedBrush : fillBrush);
-                            
+
                             //render the stroke realization
                             _context.DrawGeometryRealization(pathGeometry.StrokedRealization, strokeBrush);
                         }
@@ -444,7 +449,7 @@ namespace WpfDirect2D
                         var solidBrush = new SolidColorBrush(_context, color.ToDirect2dColor());
                         _brushResources.Add(color, solidBrush);
                     }
-                }                
+                }
             }
 
             var colorsToDelete = new List<Wpf.Color>();
@@ -452,7 +457,7 @@ namespace WpfDirect2D
             //delete any brushes not in use anymore
             foreach (var color in _brushResources.Keys)
             {
-                bool colorFound = Shapes.Any(instance => instance.GetColorsToCache().Contains(color));                
+                bool colorFound = Shapes.Any(instance => instance.GetColorsToCache().Contains(color));
                 if (!colorFound)
                 {
                     colorsToDelete.Add(color);
@@ -501,7 +506,7 @@ namespace WpfDirect2D
                     imageZoom.SetIdentity();
                 }
             }
-            
+
             ImageContainer.RenderTransform = new Wpf.MatrixTransform(imageZoom);
         }
 
@@ -545,8 +550,15 @@ namespace WpfDirect2D
                 var testPoint = new Vector2((float)mousePosition.X, (float)mousePosition.Y);
                 IShape selectedShape = null;
 
-                //do a hit test to see what shape is being clicked on
-                foreach (var shape in Shapes)
+                //make a fake vectorshape to use as the mouse position
+                var mouseShape = new VectorShape
+                {
+                    PixelXLocation = Convert.ToSingle(mousePosition.X),
+                    PixelYLocation = Convert.ToSingle(mousePosition.Y)
+                };
+
+                var shapes = _spatialIndex.GetNearbyShapes(mouseShape, new SharpDX.Mathematics.Interop.RawRectangleF(3.3f, 11f, 3.3f, 11f));
+                foreach (var shape in shapes)
                 {
                     var pathGeometry = _createdGeometries.FirstOrDefault(g => g.IsGeometryForShape(shape));
                     if (pathGeometry != null)
@@ -576,26 +588,60 @@ namespace WpfDirect2D
                                 }
                             }
                         }
-                        else if (pathGeometry is LineGeometry)
-                        {
-                            if (pathGeometry.Geometry.StrokeContainsPoint(testPoint, shape.StrokeWidth, _lineStrokeStyle, translation, 4f))
-                            {
-                                var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
-                                if (previousSelectedShape != null)
-                                {
-                                    previousSelectedShape.IsSelected = false;
-                                }
-
-                                shape.IsSelected = true;
-                                selectedShape = shape;
-                            }
-                            else
-                            {
-                                shape.IsSelected = false;
-                            }
-                        }
                     }
                 }
+
+                //do a hit test to see what shape is being clicked on
+                //foreach (var shape in Shapes)
+                //{
+                //    var pathGeometry = _createdGeometries.FirstOrDefault(g => g.IsGeometryForShape(shape));
+                //    if (pathGeometry != null)
+                //    {
+                //        var translation = Matrix3x2.Identity;
+                //        if (pathGeometry is GeometryPath)
+                //        {
+                //            var vectorShape = shape as VectorShape;
+                //            if (vectorShape != null)
+                //            {
+                //                translation = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
+
+                //                if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
+                //                {
+                //                    var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
+                //                    if (previousSelectedShape != null)
+                //                    {
+                //                        previousSelectedShape.IsSelected = false;
+                //                    }
+
+                //                    shape.IsSelected = true;
+                //                    selectedShape = shape;
+                //                }
+                //                else
+                //                {
+                //                    shape.IsSelected = false;
+                //                }
+                //            }
+                //        }
+                //        else if (pathGeometry is LineGeometry)
+                //        {
+                //            if (pathGeometry.Geometry.StrokeContainsPoint(testPoint, shape.StrokeWidth, _lineStrokeStyle, translation, 4f))
+                //            {
+                //                var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
+                //                if (previousSelectedShape != null)
+                //                {
+                //                    previousSelectedShape.IsSelected = false;
+                //                }
+
+                //                shape.IsSelected = true;
+                //                selectedShape = shape;
+                //            }
+                //            else
+                //            {
+                //                shape.IsSelected = false;
+                //            }
+                //        }
+                //    }
+                //}
 
                 SelectedShape = selectedShape;
                 InteropImage.RequestRender();

@@ -101,6 +101,7 @@
     <Compile Include="Shapes\LineGeometry.cs" />
     <Compile Include="Shapes\LineShape.cs" />
     <Compile Include="Shapes\VectorShape.cs" />
+    <Compile Include="SpatialHash.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="Direct2DSurface.xaml">
