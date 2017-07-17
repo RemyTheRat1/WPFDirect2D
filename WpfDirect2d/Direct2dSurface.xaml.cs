@@ -29,7 +29,7 @@ namespace WpfDirect2D
         private Point _mouseMoveStartPoint;
         private bool _isPanning;
         private Factory1 _d2dFactory;
-        private StrokeStyle _lineStrokeStyle;
+        private StrokeStyle _lineStrokeStyle;        
 
         private bool _renderRequiresInit;
         private readonly List<BaseGeometry> _createdGeometries;
@@ -126,6 +126,16 @@ namespace WpfDirect2D
             Loaded += OnLoaded;            
             SizeChanged += OnSizeChanged;
         }
+
+        /// <summary>
+        /// Are Geometry Realizations valid for this OS version
+        /// </summary>
+        public bool IsRealizationValid { get; private set; }
+
+        /// <summary>
+        /// Are Geometry Realizations enabled and also valid to use
+        /// </summary>
+        public bool GeometryRealizationsEnabled => UseRealizations && IsRealizationValid;
 
         /// <summary>
         /// Request a render of the geometries defined in the Shapes DP.
@@ -252,6 +262,15 @@ namespace WpfDirect2D
             texture.Dispose();
 
             _renderRequiresInit = false;
+
+            if (Environment.OSVersion.Version.Major >= 6 && Environment.OSVersion.Version.Minor >= 2)
+            {
+                IsRealizationValid = true;
+            }
+            else
+            {
+                IsRealizationValid = false;
+            }
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -317,7 +336,7 @@ namespace WpfDirect2D
                     if (vectorShape != null)
                     {                        
                         var transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
-                        if (UseRealizations)
+                        if (GeometryRealizationsEnabled)
                         {
                             _context.Transform = transform;
                             
@@ -401,7 +420,7 @@ namespace WpfDirect2D
                 helper.Execute(commands);
                 sink.Close();
                 var shapeGeometry = new GeometryPath(vectorShape.GeometryPath, geometry);
-                if (UseRealizations)
+                if (GeometryRealizationsEnabled)
                 {
                     shapeGeometry.CreateRealizations(_context);
                 }
