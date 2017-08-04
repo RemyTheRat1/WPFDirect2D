@@ -261,6 +261,7 @@ namespace WpfDirect2D
 
             _renderRequiresInit = false;
 
+            //check if realizations are allowed (windows 8+)
             if (Environment.OSVersion.Version.Major >= 6 && Environment.OSVersion.Version.Minor >= 2)
             {
                 IsRealizationValid = true;
@@ -270,6 +271,7 @@ namespace WpfDirect2D
                 IsRealizationValid = false;
             }
 
+            //resync shapes if needed
             if (syncShapes)
             {
                 SyncBrushesWithShapes();
