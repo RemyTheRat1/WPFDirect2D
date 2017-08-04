@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
 using Prism.Commands;
@@ -25,7 +27,14 @@ namespace TestApp
             NumberOfItemsToRender = 10;
             Geometries = new List<IShape>();
 
-            GenerateShapes();
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    Thread.Sleep(1000);
+                    GenerateShapes();
+                }
+            });            
         }
 
         public ICommand ApplyNumberOfRenderItems { get; private set; }

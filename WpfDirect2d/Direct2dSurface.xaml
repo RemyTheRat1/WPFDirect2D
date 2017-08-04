@@ -15,7 +15,7 @@
         <Image Name="InteropHost" Stretch="Fill" Width="{Binding ActualWidth, ElementName=Direct2D, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=Direct2D, Mode=OneWay}"
                LayoutTransform="{Binding ElementName=Direct2D, Path=AxisTransform}" IsHitTestVisible="False">
             <Image.Source>
-                <directX:D3D11Image x:Name="InteropImage" />
+                <directX:D3D11Image x:Name="InteropImage" IsFrontBufferAvailableChanged="InteropImage_IsFrontBufferAvailableChanged" />
             </Image.Source>
         </Image>
     </Grid>

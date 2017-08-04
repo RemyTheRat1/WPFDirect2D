@@ -183,19 +183,9 @@ namespace WpfDirect2D
             if (disposing)
             {
                 _context.Dispose();
-                foreach (var geometry in _createdGeometries)
-                {
-                    geometry.Dispose();
-                }
-                foreach (var brush in _brushResources)
-                {
-                    brush.Value.Dispose();
-                }
+                DisposeDeviceResources();                
 
                 _lineStrokeStyle.Dispose();
-                _createdGeometries.Clear();
-                _brushResources.Clear();
-
                 _isRenderInitialized = false;
             }
 
@@ -211,8 +201,16 @@ namespace WpfDirect2D
 
         private void InitializeRenderer(IntPtr handle)
         {
+            bool syncShapes = false;
+
             //if not null dispose the render target
-            _context?.Dispose();
+            if (_context != null)
+            {
+                _context.Dispose();
+                DisposeDeviceResources();
+
+                syncShapes = true;
+            }
 
             if (InteropImage.PixelHeight == 0 && InteropImage.PixelWidth == 0)
             {
@@ -252,6 +250,27 @@ namespace WpfDirect2D
             texture.Dispose();
 
             _renderRequiresInit = false;
+
+            if (syncShapes)
+            {
+                SyncBrushesWithShapes();
+                SyncGeometriesWithShapes();
+            }
+        }
+
+        private void DisposeDeviceResources()
+        {
+            foreach (var geometry in _createdGeometries)
+            {
+                geometry.Dispose();
+            }
+            foreach (var brush in _brushResources)
+            {
+                brush.Value.Dispose();
+            }
+
+            _createdGeometries.Clear();
+            _brushResources.Clear();
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -602,6 +621,24 @@ namespace WpfDirect2D
             }
 
             _isPanning = false;
+        }
+
+        private void InteropImage_IsFrontBufferAvailableChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (!(e.NewValue is bool) || !(e.OldValue is bool))
+            {
+                return;
+            }
+
+            if (!(bool) e.NewValue && (bool) e.OldValue)
+            {
+                _renderRequiresInit = true;
+                
+            }
+            else
+            {
+                InteropImage.RequestRender();
+            }
         }
     }
 }
