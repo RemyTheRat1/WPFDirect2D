@@ -29,7 +29,7 @@ namespace WpfDirect2D
         private Point _mouseMoveStartPoint;
         private bool _isPanning;
         private Factory1 _d2dFactory;
-        private StrokeStyle _lineStrokeStyle;        
+        private StrokeStyle _lineStrokeStyle;
 
         private bool _renderRequiresInit;
         private readonly List<BaseGeometry> _createdGeometries;
@@ -56,7 +56,7 @@ namespace WpfDirect2D
             DependencyProperty.Register("AxisTransform", typeof(Wpf.ScaleTransform), typeof(Direct2DSurface));
 
         public static readonly DependencyProperty RenderOriginProperty =
-            DependencyProperty.Register("RenderOrigin", typeof(ShapeRenderOrigin), typeof(Direct2DSurface), new PropertyMetadata(ShapeRenderOrigin.Center));        
+            DependencyProperty.Register("RenderOrigin", typeof(ShapeRenderOrigin), typeof(Direct2DSurface), new PropertyMetadata(ShapeRenderOrigin.Center));
 
         public static readonly DependencyProperty SelectedShapeProperty =
             DependencyProperty.Register("SelectedShape", typeof(IShape), typeof(Direct2DSurface), new FrameworkPropertyMetadata { BindsTwoWayByDefault = true });
@@ -65,10 +65,25 @@ namespace WpfDirect2D
             DependencyProperty.Register("IsMouseWheelZoomEnabled", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(false));
 
         public static readonly DependencyProperty IsPanningEnabledProperty =
-            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));        
-        
+            DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));
+
         public static readonly DependencyProperty UseRealizationsProperty =
             DependencyProperty.Register("UseRealizations", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(true));
+
+        public static readonly DependencyProperty RequestRerenderProperty =
+            DependencyProperty.Register("RequestRerender", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(new PropertyChangedCallback(OnRequestRerender)));
+
+        private static void OnRequestRerender(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = d as Direct2DSurface;
+            control?.RequestRender();
+        }
+
+        public bool RequestRerender
+        {
+            get { return (bool)GetValue(RequestRerenderProperty); }
+            set { SetValue(RequestRerenderProperty, value); }
+        }
 
         public IEnumerable<IShape> Shapes
         {
@@ -123,7 +138,7 @@ namespace WpfDirect2D
             _createdGeometries = new List<BaseGeometry>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
 
-            Loaded += OnLoaded;            
+            Loaded += OnLoaded;
             SizeChanged += OnSizeChanged;
         }
 
@@ -193,7 +208,7 @@ namespace WpfDirect2D
             if (disposing)
             {
                 _context.Dispose();
-                DisposeDeviceResources();                
+                DisposeDeviceResources();
 
                 _lineStrokeStyle.Dispose();
                 _isRenderInitialized = false;
@@ -249,11 +264,11 @@ namespace WpfDirect2D
                     MinLevel = FeatureLevel.Level_DEFAULT,
                     PixelFormat = new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied),
                     Type = RenderTargetType.Default,
-                    Usage = RenderTargetUsage.None                    
+                    Usage = RenderTargetUsage.None
                 };
 
                 var renderTarget = new RenderTarget(_d2dFactory, surface, properties);
-                _context = renderTarget.QueryInterface<DeviceContext1>();                
+                _context = renderTarget.QueryInterface<DeviceContext1>();
             }
 
             comObject.Dispose();
@@ -355,15 +370,15 @@ namespace WpfDirect2D
 
                     var vectorShape = shape as VectorShape;
                     if (vectorShape != null)
-                    {                        
+                    {
                         var transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
                         if (GeometryRealizationsEnabled)
                         {
                             _context.Transform = transform;
-                            
+
                             //render the fill realization
                             _context.DrawGeometryRealization(pathGeometry.FilledRealization, shape.IsSelected ? selectedBrush : fillBrush);
-                            
+
                             //render the stroke realization
                             _context.DrawGeometryRealization(pathGeometry.StrokedRealization, strokeBrush);
                         }
@@ -484,7 +499,7 @@ namespace WpfDirect2D
                         var solidBrush = new SolidColorBrush(_context, color.ToDirect2dColor());
                         _brushResources.Add(color, solidBrush);
                     }
-                }                
+                }
             }
 
             var colorsToDelete = new List<Wpf.Color>();
@@ -492,7 +507,7 @@ namespace WpfDirect2D
             //delete any brushes not in use anymore
             foreach (var color in _brushResources.Keys)
             {
-                bool colorFound = Shapes.Any(instance => instance.GetColorsToCache().Contains(color));                
+                bool colorFound = Shapes.Any(instance => instance.GetColorsToCache().Contains(color));
                 if (!colorFound)
                 {
                     colorsToDelete.Add(color);
@@ -541,7 +556,7 @@ namespace WpfDirect2D
                     imageZoom.SetIdentity();
                 }
             }
-            
+
             ImageContainer.RenderTransform = new Wpf.MatrixTransform(imageZoom);
         }
 
@@ -651,10 +666,10 @@ namespace WpfDirect2D
                 return;
             }
 
-            if (!(bool) e.NewValue && (bool) e.OldValue)
+            if (!(bool)e.NewValue && (bool)e.OldValue)
             {
                 _renderRequiresInit = true;
-                
+
             }
             else
             {
