@@ -29,7 +29,9 @@ namespace WpfDirect2D.Shapes
 
         public bool IsLineClosed { get; set; }
 
-        public List<Color> BrushColorsToCache { get; }
+        public List<Color> BrushColorsToCache { get; }        
+
+        public int GeometryHash { get; set; }
 
         public Point GetStartingPoint()
         {

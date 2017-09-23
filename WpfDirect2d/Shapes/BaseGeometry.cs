@@ -16,11 +16,13 @@ namespace WpfDirect2D.Shapes
 
         public PathGeometry Geometry { get; protected set; }
 
+        public int GeometryHash { get; protected set; }
+
         public GeometryRealization FilledRealization { get; protected set; }
 
-        public GeometryRealization StrokedRealization { get; protected set; }
+        public GeometryRealization StrokedRealization { get; protected set; }        
 
-        public abstract bool IsGeometryForShape(IShape shape);
+        protected abstract void SetGeometryHash();
 
         public abstract void CreateRealizations(DeviceContext1 deviceContext);
 
@@ -53,7 +55,7 @@ namespace WpfDirect2D.Shapes
         private Matrix3x2 GetTopLeftRenderTransform(float scaleFactor, float xLocation, float yLocation, float rotation)
         {
             return Matrix3x2.Scaling(scaleFactor) * Matrix3x2.Rotation(rotation) * Matrix3x2.Translation(xLocation, yLocation);
-        }
+        }        
 
         protected virtual void Dispose(bool disposing)
         {

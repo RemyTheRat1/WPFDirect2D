@@ -1,7 +1,6 @@
 ﻿using System;
 using SharpDX.Direct2D1;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace WpfDirect2D.Shapes
 {
@@ -11,27 +10,14 @@ namespace WpfDirect2D.Shapes
             : base(geometry)
         {
             LineNodes = lineNodes;
+            SetGeometryHash();
         }
 
-        public List<System.Windows.Point> LineNodes { get; private set; }
+        public List<System.Windows.Point> LineNodes { get; }
 
-        public override bool IsGeometryForShape(IShape shape)
+        protected sealed override void SetGeometryHash()
         {
-            var lineShape = shape as LineShape;
-            if (lineShape == null)
-            {
-                return false;
-            }
-
-            foreach (var node in LineNodes)
-            {
-                if (!lineShape.LineNodes.Any(n => n.X == node.X && n.Y == node.Y))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            GeometryHash = LineNodes.GetSequenceHashCode();
         }
 
         public override void CreateRealizations(DeviceContext1 deviceContext)

@@ -5,6 +5,8 @@ namespace WpfDirect2D.Shapes
 {
     public class VectorShape : IShape
     {
+        private string _geometryPath;
+
         public VectorShape()
         {
             BrushColorsToCache = new List<Color>();
@@ -15,7 +17,15 @@ namespace WpfDirect2D.Shapes
         /// <summary>
         /// Path describing the geometry in svg / xaml path format
         /// </summary>
-        public string GeometryPath { get; set; }
+        public string GeometryPath
+        {
+            get { return _geometryPath; }
+            set
+            {
+                _geometryPath = value;
+                GeometryHash = GeometryPath.GetHashCode();
+            }
+        }
 
         public float PixelXLocation { get; set; }
 
@@ -36,6 +46,8 @@ namespace WpfDirect2D.Shapes
         public Color SelectedColor { get; set; }
 
         public List<Color> BrushColorsToCache { get; }
+
+        public int GeometryHash { get; set; }
 
         public List<Color> GetColorsToCache()
         {

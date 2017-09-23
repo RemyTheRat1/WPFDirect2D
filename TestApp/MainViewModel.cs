@@ -7,6 +7,7 @@ using System.Windows.Media;
 using Prism.Commands;
 using WpfDirect2D.Shapes;
 using Prism.Mvvm;
+using System.Linq;
 using System.Windows;
 
 namespace TestApp
@@ -19,6 +20,7 @@ namespace TestApp
         private int _numberOfItemsToRender;
         private readonly Random _random;
         private IShape _selectedShape;
+        private bool _rerender;
 
         public MainViewModel()
         {
@@ -31,8 +33,13 @@ namespace TestApp
             {
                 while (true)
                 {
-                    Thread.Sleep(1000);
-                    GenerateShapes();
+                    Thread.Sleep(100);
+                    Rerender = !Rerender;
+                    var item = Geometries.ElementAtOrDefault(_random.Next(0, Geometries.Count));
+                    if (item != null)
+                    {
+                        item.IsSelected = !item.IsSelected;
+                    }
                 }
             });            
         }
@@ -51,6 +58,12 @@ namespace TestApp
         {
             get { return _selectedShape; }
             set { _selectedShape = value; }
+        }
+
+        public bool Rerender
+        {
+            get { return _rerender; }
+            set { SetProperty(ref _rerender, value); }
         }
 
         private void GenerateShapes()
@@ -123,9 +136,25 @@ namespace TestApp
             };
             line.LineNodes.Add(new Point(10, 40));
             line.LineNodes.Add(new Point(400, 10));
-            line.LineNodes.Add(new Point(400, 400));            
-
+            line.LineNodes.Add(new Point(400, 400));
             geometryList.Add(line);
+
+            //int numLines = 4000;
+            //for (int i = 0; i < numLines; i++)
+            //{
+            //    var line = new LineShape
+            //    {
+            //        FillColor = Colors.Blue,
+            //        StrokeColor = Colors.Blue,
+            //        SelectedColor = Colors.PaleVioletRed,
+            //        StrokeWidth = 4f,
+            //        IsLineClosed = false
+            //    };
+            //    line.LineNodes.Add(new Point(GetRandomPixelLocation(), GetRandomPixelLocation()));
+            //    line.LineNodes.Add(new Point(GetRandomPixelLocation(), GetRandomPixelLocation()));                
+            //    geometryList.Add(line);
+            //}
+
 
             Geometries = new List<IShape>(geometryList);
             RaisePropertyChanged(nameof(Geometries));

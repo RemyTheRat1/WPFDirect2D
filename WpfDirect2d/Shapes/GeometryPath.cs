@@ -7,22 +7,26 @@ namespace WpfDirect2D.Shapes
 {
     internal class GeometryPath : BaseGeometry
     {
+        private string _path;
+
         public GeometryPath(string geometryPath, PathGeometry geometry) : base(geometry)
         {
             Path = geometryPath;            
         }
 
-        public string Path { get; set; }
-
-        public override bool IsGeometryForShape(IShape shape)
+        public string Path
         {
-            var pathShape = shape as VectorShape;
-            if (pathShape == null)
+            get { return _path; }
+            set
             {
-                return false;
+                _path = value;
+                SetGeometryHash();
             }
+        }
 
-            return pathShape.GeometryPath == Path;
+        protected override void SetGeometryHash()
+        {
+            GeometryHash = Path.GetHashCode();
         }
 
         public override void CreateRealizations(DeviceContext1 deviceContext)

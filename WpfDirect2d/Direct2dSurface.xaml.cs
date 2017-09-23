@@ -32,8 +32,8 @@ namespace WpfDirect2D
         private StrokeStyle _lineStrokeStyle;
 
         private bool _renderRequiresInit;
-        private readonly List<BaseGeometry> _createdGeometries;
         private readonly Dictionary<Wpf.Color, SolidColorBrush> _brushResources;
+        private readonly Dictionary<int, BaseGeometry> _createdGeometries;
 
         #region Dependency Properties
 
@@ -135,7 +135,7 @@ namespace WpfDirect2D
         public Direct2DSurface()
         {
             InitializeComponent();
-            _createdGeometries = new List<BaseGeometry>();
+            _createdGeometries = new Dictionary<int, BaseGeometry>();
             _brushResources = new Dictionary<Wpf.Color, SolidColorBrush>();
 
             Loaded += OnLoaded;
@@ -298,7 +298,7 @@ namespace WpfDirect2D
         {
             foreach (var geometry in _createdGeometries)
             {
-                geometry.Dispose();
+                geometry.Value.Dispose();
             }
             foreach (var brush in _brushResources)
             {
@@ -359,48 +359,46 @@ namespace WpfDirect2D
             //render the geometries
             foreach (var shape in Shapes)
             {
-                //get the path geometry for the shape
-                var pathGeometry = _createdGeometries.FirstOrDefault(g => g.IsGeometryForShape(shape));
-                if (pathGeometry != null)
+                //get the path geometry for the shape                
+                var pathGeometry = _createdGeometries[shape.GeometryHash];
+
+                //get the fill and stroke brushes
+                var fillBrush = _brushResources[shape.FillColor];
+                var strokeBrush = _brushResources[shape.StrokeColor];
+                var selectedBrush = _brushResources[shape.SelectedColor];
+
+                var vectorShape = shape as VectorShape;
+                if (vectorShape != null)
                 {
-                    //get the fill and stroke brushes
-                    var fillBrush = _brushResources[shape.FillColor];
-                    var strokeBrush = _brushResources[shape.StrokeColor];
-                    var selectedBrush = _brushResources[shape.SelectedColor];
-
-                    var vectorShape = shape as VectorShape;
-                    if (vectorShape != null)
+                    var transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
+                    if (GeometryRealizationsEnabled)
                     {
-                        var transform = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
-                        if (GeometryRealizationsEnabled)
-                        {
-                            _context.Transform = transform;
+                        _context.Transform = transform;
 
-                            //render the fill realization
-                            _context.DrawGeometryRealization(pathGeometry.FilledRealization, shape.IsSelected ? selectedBrush : fillBrush);
+                        //render the fill realization
+                        _context.DrawGeometryRealization(pathGeometry.FilledRealization, shape.IsSelected ? selectedBrush : fillBrush);
 
-                            //render the stroke realization
-                            _context.DrawGeometryRealization(pathGeometry.StrokedRealization, strokeBrush);
-                        }
-                        else
-                        {
-                            var transformedGeometry = new TransformedGeometry(_d2dFactory, pathGeometry.Geometry, transform);
-
-                            //render the fill color
-                            _context.FillGeometry(transformedGeometry, shape.IsSelected ? selectedBrush : fillBrush);
-
-                            //render the geometry
-                            _context.DrawGeometry(transformedGeometry, strokeBrush, shape.StrokeWidth);
-                        }
+                        //render the stroke realization
+                        _context.DrawGeometryRealization(pathGeometry.StrokedRealization, strokeBrush);
                     }
                     else
                     {
-                        //render the line geometry
-                        //lines dont have a set point, it has a series of node points which define the line shape
-                        //translating here isnt needed
-                        _context.Transform = Matrix3x2.Identity;
-                        _context.DrawGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth, _lineStrokeStyle);
+                        var transformedGeometry = new TransformedGeometry(_d2dFactory, pathGeometry.Geometry, transform);
+
+                        //render the fill color
+                        _context.FillGeometry(transformedGeometry, shape.IsSelected ? selectedBrush : fillBrush);
+
+                        //render the geometry
+                        _context.DrawGeometry(transformedGeometry, strokeBrush, shape.StrokeWidth);
                     }
+                }
+                else
+                {
+                    //render the line geometry
+                    //lines dont have a set point, it has a series of node points which define the line shape
+                    //translating here isnt needed
+                    _context.Transform = Matrix3x2.Identity;
+                    _context.DrawGeometry(pathGeometry.Geometry, shape.IsSelected ? selectedBrush : strokeBrush, shape.StrokeWidth, _lineStrokeStyle);
                 }
             }
             _context.EndDraw();
@@ -411,32 +409,32 @@ namespace WpfDirect2D
             if (_context?.Factory == null || Shapes == null)
             {
                 return;
-            }
-
-            var geometriesToAdd = new List<BaseGeometry>();
+            }            
 
             foreach (var shape in Shapes)
             {
-                if (_createdGeometries.All(g => !g.IsGeometryForShape(shape)) && geometriesToAdd.All(g => !g.IsGeometryForShape(shape)))
-                {
-                    //vector not created, make it here and store for later
-                    var geometry = CreateGeometry(shape);
-                    if (geometry != null)
+                if (_createdGeometries.ContainsKey(shape.GeometryHash)) continue;
+
+                //vector not created, make it here and store for later
+                var geometry = CreateGeometry(shape);
+                if (geometry != null)
+                {                        
+                    if (!_createdGeometries.ContainsKey(geometry.GeometryHash))
                     {
-                        geometriesToAdd.Add(geometry);
+                        _createdGeometries.Add(geometry.GeometryHash, geometry);
                     }
                 }
             }
 
             //get list of geometries that are no longer in the Shapes collection, and delete them
-            foreach (var geometryToDelete in _createdGeometries.Where(geometry => Shapes.All(s => !geometry.IsGeometryForShape(s))).ToList())
+            foreach (var geoHash in _createdGeometries.Keys)
             {
-                geometryToDelete.Dispose();
-                _createdGeometries.Remove(geometryToDelete);
+                if (Shapes.All(s => s.GeometryHash != geoHash))
+                {
+                    _createdGeometries[geoHash].Dispose();
+                    _createdGeometries.Remove(geoHash);
+                }
             }
-
-            //add the new geometries
-            _createdGeometries.AddRange(geometriesToAdd);
         }
 
         private BaseGeometry CreateGeometry(IShape shape)
@@ -455,11 +453,14 @@ namespace WpfDirect2D
                 var commands = VectorGraphicParser.ParsePathData(vectorShape.GeometryPath);
                 helper.Execute(commands);
                 sink.Close();
+
                 var shapeGeometry = new GeometryPath(vectorShape.GeometryPath, geometry);
                 if (GeometryRealizationsEnabled)
                 {
                     shapeGeometry.CreateRealizations(_context);
                 }
+
+                vectorShape.GeometryHash = shapeGeometry.GeometryHash;
                 return shapeGeometry;
             }
 
@@ -475,7 +476,10 @@ namespace WpfDirect2D
                 sink.AddLines(lineShape.GetConnectingPoints().ToRawVector2Array());
                 sink.EndFigure(lineShape.IsLineClosed ? FigureEnd.Closed : FigureEnd.Open);
                 sink.Close();
-                return new LineGeometry(lineShape.LineNodes, geometry);
+
+                var lineGeometry = new LineGeometry(lineShape.LineNodes, geometry);
+                lineShape.GeometryHash = lineGeometry.GeometryHash;
+                return lineGeometry;
             }
 
             return null;
@@ -603,37 +607,17 @@ namespace WpfDirect2D
                 //do a hit test to see what shape is being clicked on
                 foreach (var shape in Shapes)
                 {
-                    var pathGeometry = _createdGeometries.FirstOrDefault(g => g.IsGeometryForShape(shape));
-                    if (pathGeometry != null)
+                    var pathGeometry = _createdGeometries[shape.GeometryHash];
+
+                    var translation = Matrix3x2.Identity;
+                    if (pathGeometry is GeometryPath)
                     {
-                        var translation = Matrix3x2.Identity;
-                        if (pathGeometry is GeometryPath)
+                        var vectorShape = shape as VectorShape;
+                        if (vectorShape != null)
                         {
-                            var vectorShape = shape as VectorShape;
-                            if (vectorShape != null)
-                            {
-                                translation = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
+                            translation = pathGeometry.GetRenderTransform(vectorShape.Scaling, vectorShape.PixelXLocation, vectorShape.PixelYLocation, vectorShape.Rotation, RenderOrigin);
 
-                                if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
-                                {
-                                    var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
-                                    if (previousSelectedShape != null)
-                                    {
-                                        previousSelectedShape.IsSelected = false;
-                                    }
-
-                                    shape.IsSelected = true;
-                                    selectedShape = shape;
-                                }
-                                else
-                                {
-                                    shape.IsSelected = false;
-                                }
-                            }
-                        }
-                        else if (pathGeometry is LineGeometry)
-                        {
-                            if (pathGeometry.Geometry.StrokeContainsPoint(testPoint, shape.StrokeWidth, _lineStrokeStyle, translation, 4f))
+                            if (pathGeometry.Geometry.FillContainsPoint(testPoint, translation, 4f))
                             {
                                 var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
                                 if (previousSelectedShape != null)
@@ -648,6 +632,24 @@ namespace WpfDirect2D
                             {
                                 shape.IsSelected = false;
                             }
+                        }
+                    }
+                    else if (pathGeometry is LineGeometry)
+                    {
+                        if (pathGeometry.Geometry.StrokeContainsPoint(testPoint, shape.StrokeWidth, _lineStrokeStyle, translation, 4f))
+                        {
+                            var previousSelectedShape = Shapes.FirstOrDefault(s => s.IsSelected);
+                            if (previousSelectedShape != null)
+                            {
+                                previousSelectedShape.IsSelected = false;
+                            }
+
+                            shape.IsSelected = true;
+                            selectedShape = shape;
+                        }
+                        else
+                        {
+                            shape.IsSelected = false;
                         }
                     }
                 }

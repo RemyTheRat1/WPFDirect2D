@@ -1,6 +1,7 @@
 ﻿using SharpDX;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Wpf = System.Windows.Media;
 using Windows= System.Windows;
 using SharpDX.Mathematics.Interop;
@@ -33,6 +34,18 @@ namespace WpfDirect2D
             }
 
             return rawVectors.ToArray();
+        }
+
+        public static int GetSequenceHashCode<T>(this IList<T> sequence)
+        {
+            const int seed = 487;
+            const int modifier = 31;
+
+            unchecked
+            {
+                return sequence.Aggregate(seed, (current, item) =>
+                    (current * modifier) + item.GetHashCode());
+            }
         }
     }
 }

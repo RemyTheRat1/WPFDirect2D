@@ -45,5 +45,7 @@ namespace WpfDirect2D.Shapes
         /// </summary>
         /// <returns></returns>
         List<Color> GetColorsToCache();
+
+        int GeometryHash { get; set; }
     }
 }
