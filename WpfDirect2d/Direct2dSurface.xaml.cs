@@ -359,8 +359,13 @@ namespace WpfDirect2D
             //render the geometries
             foreach (var shape in Shapes)
             {
-                //get the path geometry for the shape                
-                var pathGeometry = _createdGeometries[shape.GeometryHash];
+                //get the path geometry for the shape   
+                BaseGeometry pathGeometry;             
+                _createdGeometries.TryGetValue(shape.GeometryHash, out pathGeometry);
+                if (pathGeometry == null)
+                {
+                    continue;
+                }
 
                 //get the fill and stroke brushes
                 var fillBrush = _brushResources[shape.FillColor];
