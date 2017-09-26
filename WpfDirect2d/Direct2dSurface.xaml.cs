@@ -432,7 +432,7 @@ namespace WpfDirect2D
             }
 
             //get list of geometries that are no longer in the Shapes collection, and delete them
-            foreach (var geoHash in _createdGeometries.Keys)
+            foreach (var geoHash in _createdGeometries.Keys.ToList())
             {
                 if (Shapes.All(s => s.GeometryHash != geoHash))
                 {
