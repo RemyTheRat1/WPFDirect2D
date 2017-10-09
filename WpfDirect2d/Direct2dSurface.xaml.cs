@@ -51,7 +51,6 @@ namespace WpfDirect2D
             control?.RequestRender();
         }
 
-
         public static readonly DependencyProperty AxisTransformProperty =
             DependencyProperty.Register("AxisTransform", typeof(Wpf.ScaleTransform), typeof(Direct2DSurface));
 
@@ -69,21 +68,6 @@ namespace WpfDirect2D
 
         public static readonly DependencyProperty UseRealizationsProperty =
             DependencyProperty.Register("UseRealizations", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty RequestRerenderProperty =
-            DependencyProperty.Register("RequestRerender", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(new PropertyChangedCallback(OnRequestRerender)));
-
-        private static void OnRequestRerender(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var control = d as Direct2DSurface;
-            control?.RequestRender();
-        }
-
-        public bool RequestRerender
-        {
-            get { return (bool)GetValue(RequestRerenderProperty); }
-            set { SetValue(RequestRerenderProperty, value); }
-        }
 
         public IEnumerable<IShape> Shapes
         {
@@ -352,7 +336,7 @@ namespace WpfDirect2D
             {
                 return;
             }
-
+            
             _context.BeginDraw();
             _context.Clear(Color.Transparent);
 
@@ -502,7 +486,7 @@ namespace WpfDirect2D
             {
                 foreach (var color in instance.GetColorsToCache())
                 {
-                    if (_brushResources.All(b => b.Key != color))
+                    if (!_brushResources.ContainsKey(color))
                     {
                         //color missing, add it
                         var solidBrush = new SolidColorBrush(_context, color.ToDirect2dColor());

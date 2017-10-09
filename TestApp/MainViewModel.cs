@@ -34,11 +34,14 @@ namespace TestApp
                 while (true)
                 {
                     Thread.Sleep(100);
-                    Rerender = !Rerender;
+                    Geometries = new List<IShape>(Geometries);
+                    RaisePropertyChanged(nameof(Geometries));
+
                     var item = Geometries.ElementAtOrDefault(_random.Next(0, Geometries.Count));
                     if (item != null)
                     {
                         item.IsSelected = !item.IsSelected;
+                        item.FillColor = Colors.Yellow;
                     }
                 }
             });            
@@ -74,7 +77,7 @@ namespace TestApp
             int count = 0;
             while (count < NumberOfItemsToRender)
             {
-                geometryList.Add(new VectorShape
+                var shape = new VectorShape
                 {
                     GeometryPath = DOT_CIRCLE_VECTOR,
                     PixelXLocation = GetRandomPixelLocation(),
@@ -83,8 +86,13 @@ namespace TestApp
                     StrokeColor = Colors.Black,
                     SelectedColor = Colors.Green,
                     StrokeWidth = 0.5f,
-                    Scaling = 0.2f
-                });
+                    Scaling = 0.2f                    
+                };
+                shape.BrushColorsToCache.Add(Colors.Yellow);
+                shape.BrushColorsToCache.Add(Colors.Wheat);
+                shape.BrushColorsToCache.Add(Colors.Turquoise);
+                shape.BrushColorsToCache.Add(Colors.SaddleBrown);
+                geometryList.Add(shape);
 
                 geometryList.Add(new VectorShape
                 {
