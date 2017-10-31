@@ -171,14 +171,6 @@ namespace WpfDirect2D
 
                 if (_d2dFactory != null)
                 {
-                    //create the default line stroke style
-                    _lineStrokeStyle = new StrokeStyle(_d2dFactory, new StrokeStyleProperties
-                    {
-                        LineJoin = LineJoin.Round,
-                        StartCap = CapStyle.Round,
-                        EndCap = CapStyle.Round
-                    });
-
                     SyncBrushesWithShapes();
                     SyncGeometriesWithShapes();
                 }
@@ -336,7 +328,7 @@ namespace WpfDirect2D
             {
                 return;
             }
-            
+
             _context.BeginDraw();
             _context.Clear(Color.Transparent);
 
@@ -398,7 +390,18 @@ namespace WpfDirect2D
             if (_context?.Factory == null || Shapes == null)
             {
                 return;
-            }            
+            }
+
+            if (_lineStrokeStyle == null)
+            {
+                //create the default line stroke style
+                _lineStrokeStyle = new StrokeStyle(_d2dFactory, new StrokeStyleProperties
+                {
+                    LineJoin = LineJoin.Round,
+                    StartCap = CapStyle.Round,
+                    EndCap = CapStyle.Round
+                });
+            }
 
             foreach (var shape in Shapes)
             {
