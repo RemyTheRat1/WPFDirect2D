@@ -66,6 +66,9 @@ namespace WpfDirect2D
         public static readonly DependencyProperty IsPanningEnabledProperty =
             DependencyProperty.Register("IsPanningEnabled", typeof(bool), typeof(Direct2DSurface));
 
+        public static readonly DependencyProperty IsSelectionEnabledProperty =
+            DependencyProperty.Register("IsSelectionEnabled", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(true));
+
         public static readonly DependencyProperty UseRealizationsProperty =
             DependencyProperty.Register("UseRealizations", typeof(bool), typeof(Direct2DSurface), new PropertyMetadata(true));
 
@@ -91,6 +94,12 @@ namespace WpfDirect2D
         {
             get { return (bool)GetValue(IsPanningEnabledProperty); }
             set { SetValue(IsPanningEnabledProperty, value); }
+        }
+
+        public bool IsSelectionEnabled
+        {
+            get { return (bool)GetValue(IsSelectionEnabledProperty); }
+            set { SetValue(IsSelectionEnabledProperty, value); }
         }
 
         public Wpf.ScaleTransform AxisTransform
@@ -590,6 +599,11 @@ namespace WpfDirect2D
 
         private void ImageContainer_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (!IsSelectionEnabled)
+            {
+                return;
+            }
+
             if (!_isPanning && Shapes != null)
             {
                 var mousePosition = e.GetPosition(InteropHost);
