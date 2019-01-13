@@ -418,12 +418,9 @@ namespace WpfDirect2D
 
                 //vector not created, make it here and store for later
                 var geometry = CreateGeometry(shape);
-                if (geometry != null)
-                {                        
-                    if (!_createdGeometries.ContainsKey(geometry.GeometryHash))
-                    {
-                        _createdGeometries.Add(geometry.GeometryHash, geometry);
-                    }
+                if (geometry != null && !_createdGeometries.ContainsKey(geometry.GeometryHash))
+                {
+                    _createdGeometries.Add(geometry.GeometryHash, geometry);
                 }
             }
 
@@ -522,9 +519,11 @@ namespace WpfDirect2D
             //remove brushes to be deleted
             foreach (var color in colorsToDelete)
             {
-                var brush = _brushResources[color];
-                _brushResources.Remove(color);
-                brush.Dispose();
+                if (_brushResources.TryGetValue(color, out SolidColorBrush cachedBrush))
+                {
+                    _brushResources.Remove(color);
+                    cachedBrush.Dispose();
+                }
             }
         }
 
